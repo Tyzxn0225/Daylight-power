@@ -1,0 +1,37 @@
+{
+  "EngineAssociation": "5.8",
+  "Category": "Games",
+  "FileVersion": 3,
+  "Description": "Daylight Rights architecture graduation prototype",
+  "Plugins": [
+    {
+      "Enabled": true,
+      "Name": "EnhancedInput"
+    },
+    {
+      "Enabled": true,
+      "Name": "GameplayStateTree"
+    },
+    {
+      "TargetAllowList": [
+        "Editor"
+      ],
+      "Enabled": true,
+      "Name": "PythonScriptPlugin"
+    },
+    {
+      "TargetAllowList": [
+        "Editor"
+      ],
+      "Enabled": true,
+      "Name": "EditorScriptingUtilities"
+    }
+  ],
+  "Modules": [
+    {
+      "Name": "DaylightRights",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

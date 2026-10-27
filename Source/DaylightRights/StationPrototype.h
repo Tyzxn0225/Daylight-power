@@ -1,0 +1,856 @@
+﻿#pragma once
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/HUD.h"
+#include "GameFramework/SaveGame.h"
+#include "StationNarrativePolicy.h"
+#include "StationNavigation.h"
+#include "StationSurveyPolicy.h"
+#include "StationPrototype.generated.h"
+
+class UStaticMeshComponent;
+class UBoxComponent;
+class UMaterialInstanceDynamic;
+class UAudioComponent;
+class USoundBase;
+class ARectLight;
+class ACameraActor;
+class UFont;
+class UTexture2D;
+class UAnimationAsset;
+class UStationAchievementArchive;
+class FJsonObject;
+
+UENUM(BlueprintType)
+enum class EStationObjectKind : uint8 { Notice, Connector, NodeA, NodeB, NodeC, Terminal, AllocationLedger, ClinicRequest, KitchenRequest, HousingRequest, HouseholdArchive, ConsignmentCase, SupplierReturn, WorkAccount, SupplyParcel, DutyLoadBank, DistrictRecord, NeighborhoodMemory, FieldRadio, UrbanRecord, Reflect, HeatControl, SurveyCabinet };
+UENUM(BlueprintType)
+enum class EStationPanel : uint8 { None, Document, Conversation, Plans, Confirmation, Restart, Journal, Allocation, AllocationConfirm, RationPlan, RationConfirm, StoryArchive, ConflictStart, ConflictChoice, ConflictConfirm, SupplyStart, SupplyChoice, SupplyConfirm, DutyStart, DutyChoice, DutyConfirm, DutyCalibrate, ReturnHome, DistrictChoice, DistrictConfirm, Relationships, Exploration, NeighborhoodMap, WorldRecord, DialogueLog, Achievements, MandateStart, MandateCompare, MandateChoice, MandateConfirm, CrisisStart, CrisisBalance, CrisisConfirm, ArcChoice, ArcConfirm, ArcScene, ArcCredits, SurveyGame, SurveyBook, SurveyRecord };
+
+UCLASS()
+class DAYLIGHTRIGHTS_API UStationProgress : public USaveGame
+{
+    GENERATED_BODY()
+public:
+    UPROPERTY() int32 SurveySolvedMask=0;
+    UPROPERTY() int32 SurveyTracked=-1;
+    UPROPERTY() bool SurveyRouteEnabled=false;
+    UPROPERTY() int32 UrbanReadMask=0;
+    UPROPERTY() int32 AftermathHeardMask=0;
+    UPROPERTY() bool MandateStarted=false;
+    UPROPERTY() bool MandateOwnerHeard=false;
+    UPROPERTY() bool MandateOriginalHeld=false;
+    UPROPERTY() bool MandateCompared=false;
+    UPROPERTY() int32 MandateWitnessMask=0;
+    UPROPERTY() bool MandateTermsRead=false;
+    UPROPERTY() bool MandateConsentRecorded=false;
+    UPROPERTY() int32 MandateChoice=-1;
+    UPROPERTY() bool MandateCommitted=false;
+    UPROPERTY() bool MandateEndingHeard=false;
+    UPROPERTY() bool CrisisStarted=false;
+    UPROPERTY() bool CrisisMeasured=false;
+    UPROPERTY() bool CrisisBriefed=false;
+    UPROPERTY() bool CrisisIsolated=false;
+    UPROPERTY() int32 CrisisAllocation=-1;
+    UPROPERTY() int32 CrisisVerifiedMask=0;
+    UPROPERTY() bool CrisisBrokerHeard=false;
+    UPROPERTY() bool CrisisEndingHeard=false;
+    UPROPERTY() bool ArcStarted=false;
+    UPROPERTY() FString ArcNode;
+    UPROPERTY() TMap<FString,int32> ArcFlags;
+    UPROPERTY() bool ArcFinished=false;
+    UPROPERTY() int32 QuietVisitMask=0;
+    UPROPERTY() TArray<FString> DialogueHistory;
+    UPROPERTY() bool MetEngineer=false;
+    UPROPERTY() bool ReadNotice=false;
+    UPROPERTY() bool HasConnector=false;
+    UPROPERTY() bool HeardRisk=false;
+    UPROPERTY() int32 Connections=0;
+    UPROPERTY() int32 ChosenPlan=-1;
+    UPROPERTY() int32 Reserve=100;
+    UPROPERTY() bool Started=false;
+    UPROPERTY() bool CutsceneDone=false;
+    UPROPERTY() bool HeardAllocation=false;
+    UPROPERTY() bool MetBroker=false;
+    UPROPERTY() bool ReadLedger=false;
+    UPROPERTY() int32 AllocationPolicy=-1;
+    UPROPERTY() int32 AllocationReviewMask=0;
+    UPROPERTY() int32 RequestReadMask=0;
+    UPROPERTY() bool RationBriefed=false;
+    UPROPERTY() int32 RationMask=-1;
+    UPROPERTY() int32 RationBudget=0;
+    UPROPERTY() int32 RationCost=0;
+    UPROPERTY() int32 RationVisitMask=0;
+    UPROPERTY() int32 RationReviewMask=0;
+    UPROPERTY() bool ReadRecall=false;
+    UPROPERTY() bool SeenWorldFilm=false;
+    UPROPERTY() bool SeenFamilyFilm=false;
+    UPROPERTY() bool SeenAftermathFilm=false;
+    UPROPERTY() bool ConflictStarted=false;
+    UPROPERTY() int32 ConflictTraceMask=0;
+    UPROPERTY() int32 ConflictWitness=0;
+    UPROPERTY() bool ConflictEvidence=false;
+    UPROPERTY() int32 ConflictHeardMask=0;
+    UPROPERTY() bool ConflictOffer=false;
+    UPROPERTY() int32 ConflictChoice=-1;
+    UPROPERTY() bool ConflictPartHeld=false;
+    UPROPERTY() bool ConflictDelivered=false;
+    UPROPERTY() bool ConflictComplete=false;
+    UPROPERTY() bool SupplyStarted=false;
+    UPROPERTY() bool SeenSupplyFilm=false;
+    UPROPERTY() int32 SupplyEvidenceMask=0;
+    UPROPERTY() int32 SupplyMeasuredMask=0;
+    UPROPERTY() int32 SupplyHeardMask=0;
+    UPROPERTY() int32 SupplyChoice=-1;
+    UPROPERTY() int32 SupplyDeposit=0;
+    UPROPERTY() int32 SupplyLaborHours=0;
+    UPROPERTY() bool SupplyPartHeld=false;
+    UPROPERTY() bool SupplyInstalled=false;
+    UPROPERTY() bool SupplyComplete=false;
+    UPROPERTY() bool DutyStarted=false;
+    UPROPERTY() int32 DutyWorkMask=0;
+    UPROPERTY() bool DutyFaultRaised=false;
+    UPROPERTY() int32 DutyFaultIndex=-1;
+    UPROPERTY() int32 DutyEmergencyChoice=-1;
+    UPROPERTY() bool DutyBridgeHeld=false;
+    UPROPERTY() bool DutyCommunityRestored=false;
+    UPROPERTY() bool DutyRecheckDone=false;
+    UPROPERTY() int32 DutyCreditedHours=0;
+    UPROPERTY() int32 DutyReward=0;
+    UPROPERTY() bool DutySettled=false;
+    UPROPERTY() bool SeenDutyFilm=false;
+    UPROPERTY() bool DistrictStarted=false;
+    UPROPERTY() int32 DistrictEvidence=0;
+    UPROPERTY() int32 DistrictChoice=-1;
+    UPROPERTY() bool DistrictSettled=false;
+    UPROPERTY() bool SeenDistrictFilm=false;
+    UPROPERTY() int32 AmbientSeenMask=0;
+    UPROPERTY() int32 ExplorationSeenMask=0;
+    UPROPERTY() int32 NeighborhoodFilmMask=0;
+    UPROPERTY() bool KitchenShortcutOpen=false;
+};
+
+UCLASS()
+class DAYLIGHTRIGHTS_API AStationObject : public AActor
+{
+    GENERATED_BODY()
+public:
+    AStationObject();
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Station") EStationObjectKind Kind=EStationObjectKind::NodeA;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Station") FString DisplayName;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Station") bool UseExistingGeometry=false;
+    UPROPERTY() bool Indoor=false;
+    UPROPERTY() FVector InteractionOffset=FVector::ZeroVector;
+    UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Station") bool Active=true;
+    UFUNCTION(BlueprintPure) FVector GetInteractionPoint() const;
+    void SetIndicator(const FLinearColor& Color,float Emission);
+    void SetServicePower(bool Powered);
+    bool IsServiceRequest() const { return Kind>=EStationObjectKind::ClinicRequest&&Kind<=EStationObjectKind::HousingRequest; }
+    virtual void BeginPlay() override;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<USceneComponent> Anchor;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Body;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Screen;
+    UPROPERTY(VisibleAnywhere) TObjectPtr<UBoxComponent> Collision;
+private:
+    UPROPERTY() TObjectPtr<UMaterialInstanceDynamic> ScreenMaterial;
+    UPROPERTY() TObjectPtr<UMaterialInstanceDynamic> ServiceLampMaterial;
+};
+
+UCLASS()
+class DAYLIGHTRIGHTS_API AStationEngineer : public ACharacter
+{
+    GENERATED_BODY()
+public:
+    AStationEngineer();
+    virtual void Tick(float Delta) override;
+    virtual void BeginPlay() override;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Station") FString PersonName=TEXT("叶岑");
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Station") bool Patrol=true;
+    UPROPERTY(BlueprintReadOnly,Category="Station") bool ConversationPaused=false;
+    bool NeighborhoodRoutes=false;
+    bool FindNeighborhoodPath(const FVector& Goal);
+    UFUNCTION(BlueprintCallable) void SetConversationPaused(bool Paused,AActor* FaceActor);
+    UFUNCTION(BlueprintCallable) void ApplyIdentity(const FString& Identity);
+    UFUNCTION(BlueprintCallable) void PlayStationAction(const FString& Action,bool Loop=true);
+    void UpdateIdentityMotion();
+    UPROPERTY() TWeakObjectPtr<AActor> ConversationFaceTarget;
+    FString IdentityKey;
+    FString MotionKey;
+    FVector GetInteractionPoint() const;
+    void SetCommunityRoutine(const FString& Key);
+    void SetCommunityTask(FVector Goal,const FString& Purpose,const FString& Action=TEXT("Idle"));
+    void ClearCommunityTask();
+    UFUNCTION(BlueprintPure,Category="Station") FString GetActivityStateJson() const;
+private:
+    void TickCommunityMotion(float Delta);
+    void BeginCommunityLeg();
+    bool FindCommunityPath(const FVector& Goal);
+    TArray<FVector> CommunityPath;
+    float RepathCountdown=0;
+    bool CommunityYielding=false;
+    FVector CommunityYieldPoint=FVector::ZeroVector;
+    float CommunityYieldWait=0;
+    bool BeginCommunityYield();
+    FString RoutineKey,ActivityPurpose,ActivityAction=TEXT("Idle");
+    TArray<FVector> ActivityGoals;
+    TArray<FString> ActivityNames,ActivityActions;
+    TArray<float> ActivityWaits;
+    int32 ActivityIndex=0,TravelLeg=0;
+    FVector ActivityGoal=FVector::ZeroVector,TravelPoint=FVector::ZeroVector;
+    float ActivityRemaining=0,ActivityLane=4170,BlockedSeconds=0;
+    bool ActivityDwelling=false,CommunityTask=false;
+    float ActionUntil=0;
+    UPROPERTY() TObjectPtr<UAnimationAsset> MotionAsset;
+};
+
+UCLASS()
+class DAYLIGHTRIGHTS_API AStationDirector : public AActor
+{
+    GENERATED_BODY()
+public:
+    AStationDirector();
+    virtual void BeginPlay() override;
+    virtual void Tick(float Delta) override;
+    virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+    UFUNCTION(BlueprintCallable,Category="Station") void PressInteract();
+    UFUNCTION(BlueprintCallable,Category="Station") void ReleaseInteract();
+    UFUNCTION(BlueprintCallable,Category="Station") void SelectNext();
+    UFUNCTION(BlueprintCallable,Category="Station") void SelectPrevious();
+    UFUNCTION(BlueprintCallable,Category="Station") void GoBack();
+    UFUNCTION(BlueprintCallable,Category="Station") void RequestRestart();
+    UFUNCTION(BlueprintCallable,Category="Station") void RequestHome();
+    UFUNCTION(BlueprintCallable,Category="Station") void RequestJournal();
+    UFUNCTION(BlueprintCallable,Category="Station") void RequestRelationships();
+    UFUNCTION(BlueprintCallable,Category="Station") void RequestNeighborhoodMap();
+    UFUNCTION(BlueprintCallable,Category="Station") void RequestSurveyBook();
+    UFUNCTION(BlueprintCallable,Category="Station") void SurveyLeft();
+    UFUNCTION(BlueprintCallable,Category="Station") void SurveyRight();
+    UFUNCTION(BlueprintCallable,Category="Station") void SurveyHint();
+    UFUNCTION(BlueprintPure,meta=(DevelopmentOnly)) FString GetSurveyStateJson() const;
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) void AutomationSurveyPreview(bool MainInvestigation=false);
+    UFUNCTION(BlueprintPure,meta=(DevelopmentOnly)) bool AutomationSurveyRoundTrip() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetNeighborhoodStateJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetCommunityNarrativeStateJson() const;
+    FString GetSocialMemoryBody() const;
+    bool IsAmbientStoryActive() const {return AmbientStoryBit!=0;}
+    UFUNCTION(BlueprintCallable,Category="Station") void ToggleVoice();
+    UFUNCTION(BlueprintPure,Category="Station") FString GetPresentationStateJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetDisplayedText() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetCharacterStateJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetAllocationStateJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetRationStateJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetStoryStateJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetCommunityStateJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetConflictStateJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetSupplyStateJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetDutyStateJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetDistrictStateJson() const;
+    bool IsDistrictChapter() const {return Progress&&Progress->DistrictStarted;}
+    int32 GetDistrictStage() const;
+    FString GetDistrictChoiceLabel(int32 Index) const;
+    bool IsDutyChapter() const { return Progress&&Progress->DutyStarted; }
+    int32 GetDutyStage() const;
+    FString GetDutyMenuChoice(int32 Index) const;
+    float GetDutyPressure() const { return DutyPressure; }
+    float GetDutyStableProgress() const { return FMath::Clamp(DutyStable/1.25f,0.f,1.f); }
+    float GetDutyBandMin() const;
+    float GetDutyBandMax() const;
+    int32 GetDutyCalibrationPhase() const { return DutyPhase; }
+    bool IsDutyAssisted() const { return DutyAssist; }
+    FString GetDutyCalibrationTitle() const;
+    bool IsSupplyChapter() const { return Progress&&Progress->SupplyStarted; }
+    int32 GetSupplyStage() const;
+    FString GetSupplyMenuChoice(int32 Index) const;
+    bool IsConflictChapter() const { return Progress&&Progress->ConflictStarted; }
+    int32 GetConflictStage() const;
+    FString GetConflictMenuChoice(int32 Index) const;
+    UFUNCTION(BlueprintCallable,Category="Station",meta=(DevelopmentOnly)) bool AutomationStoryFilm(const FString& Film);
+    UFUNCTION(BlueprintCallable,Category="Station",meta=(DevelopmentOnly)) void AutomationSeekStoryFilm(float Seconds);
+    UFUNCTION(BlueprintCallable,Category="Station",meta=(DevelopmentOnly)) void AutomationCancelStoryFilm();
+    bool IsStoryFilmActive() const { return !StoryFilm.IsEmpty(); }
+    bool IsStoryCapture() const { return StoryManualCapture; }
+    FString GetStoryTitle() const;
+    FString GetStoryArchiveTitle() const;
+    FString GetStoryArchiveBody() const;
+    FString GetStoryMenuChoice(int32 Index) const;
+    float GetStorySkipProgress() const { return FMath::Clamp(StorySkipHeldSeconds/.9f,0.f,1.f); }
+    float GetStoryFade() const;
+    float GetStoryShotProgress() const;
+    UFUNCTION(BlueprintCallable,Category="Station",meta=(DevelopmentOnly)) void AutomationMovementKey(FName KeyName,bool Pressed);
+    UFUNCTION(BlueprintCallable,Category="Station",meta=(DevelopmentOnly)) void AutomationFlushMovementKeys();
+    UFUNCTION(BlueprintPure,Category="Station") bool IsPhysicalActionActive() const { return PendingActionTarget!=nullptr; }
+    UFUNCTION(BlueprintPure,Category="Station") float GetPhysicalActionProgress() const;
+    UFUNCTION(BlueprintPure,Category="Station") FString GetPhysicalActionLabel() const;
+    UFUNCTION(BlueprintCallable,Category="Station",meta=(DevelopmentOnly)) static bool BuildLocomotionAsset(const FString& Identity,bool UseRealism=false);
+    UFUNCTION(BlueprintPure,Category="Station") FString GetSnapshotJson() const;
+    UFUNCTION(BlueprintPure,Category="Station") bool CanSeeTarget(AActor* Target) const;
+    UFUNCTION(BlueprintCallable,Category="Station") void AutomationReset(bool DeleteCheckpoint);
+    UFUNCTION(BlueprintCallable,Category="Station") void AutomationReload();
+    UFUNCTION(BlueprintCallable,Category="Station",meta=(DevelopmentOnly)) void AutomationOccluder(bool Enabled);
+    UPROPERTY(BlueprintReadOnly,Category="Station") TObjectPtr<AActor> Focus;
+    UPROPERTY(BlueprintReadOnly,Category="Station") TObjectPtr<UStationProgress> Progress;
+    UPROPERTY(BlueprintReadOnly,Category="Station") EStationPanel Panel=EStationPanel::None;
+    UPROPERTY(BlueprintReadOnly,Category="Station") int32 Selection=0;
+    UPROPERTY(BlueprintReadOnly,Category="Station") bool Starting=false;
+    UPROPERTY(BlueprintReadOnly,Category="Station") float StartElapsed=0;
+    UPROPERTY(BlueprintReadOnly,Category="Station") TObjectPtr<AStationEngineer> Engineer;
+    UFUNCTION(BlueprintPure) FString GetExperienceStateJson() const;
+    UFUNCTION(BlueprintCallable) void RequestDialogueLog();
+    FString GetObjective() const;
+    FString GetMissionTitle() const;
+    int32 GetQuestStepCount() const { return IsArcChapter()?GetArcStepCount():IsCrisisChapter()?8:IsMandateChapter()?8:IsAftermathChapter()?4:IsDistrictChapter()?7:IsDutyChapter()?7:IsRationChapter()?7:Progress&&Progress->Started?6:7; }
+    bool IsAllocationChapter() const { return Progress&&Progress->Started&&!Starting; }
+    bool IsRationChapter() const { return Progress&&Progress->Started&&Progress->AllocationPolicy>=0&&Progress->AllocationReviewMask==7; }
+    int32 GetRationDraftMask() const { return RationDraftMask; }
+    int32 GetRationDraftCost() const;
+    bool IsRationComplete() const { return IsRationChapter()&&Progress->ReadRecall; }
+    FString GetPrompt() const;
+    FString GetPanelTitle() const;
+    FString GetPanelBody() const;
+    FString GetSubtitle() const;
+    FString GetSpeaker() const { return PresentedSpeaker; }
+    FString GetTypedObjective() const;
+    int32 GetQuestStage() const;
+    int32 GetConversationIndex() const { return ConversationLine; }
+    int32 GetConversationCount() const { return GetConversation().Num(); }
+    bool IsTyping() const { return VisibleCharacters<PresentedText.Len(); }
+    bool IsVoiceEnabled() const { return VoiceEnabled; }
+    bool IsVoicePlaying() const;
+    bool IsNarrationPlaying() const;
+    AActor* GetGuidanceTarget() const;
+    UFUNCTION(BlueprintCallable) void RequestAchievements();
+    UFUNCTION(BlueprintPure,meta=(DevelopmentOnly)) FString GetAchievementStateJson() const;
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) void AutomationAchievementFreshArchive();
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) bool AutomationAchievementSerialization();
+    bool IsAftermathChapter() const;
+    int32 GetAftermathStage() const;
+    int32 GetAftermathPerson(const AActor* Person) const;
+    AActor* GetAftermathGuidance() const;
+    FString GetAftermathObjective() const;
+    TArray<FString> GetAftermathConversation(AActor* Person) const;
+    bool CompleteAftermathConversation(AActor* Person);
+    FString GetAftermathJournal() const;
+    UFUNCTION(BlueprintPure,meta=(DevelopmentOnly)) FString GetAftermathStateJson() const;
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) void AutomationAftermathPreview(int32 Choice,int32 HeardMask);
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) bool AutomationAftermathRoundTrip() const;
+    bool IsMandateChapter() const;
+    bool IsMandateMenu() const;
+    bool IsMandateDocument(const AStationObject* Object) const;
+    int32 GetMandateStage() const;
+    FString GetMandateObjective() const;
+    FString GetMandateBody() const;
+    FString GetMandateChoiceLabel(int32 Index) const;
+    FString GetMandateDecisionPreview() const;
+    FString GetMandateVoiceForText(const FString& Text) const;
+    AActor* GetMandateGuidance() const;
+    TArray<FString> GetMandateConversation(AActor* Person) const;
+    UFUNCTION(BlueprintPure,meta=(DevelopmentOnly)) FString GetMandateStateJson() const;
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) void AutomationMandatePreview(int32 DistrictChoice=0);
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) bool AutomationMandateRoundTrip() const;
+    bool IsCrisisChapter() const;
+    bool IsCrisisMenu() const;
+    bool IsCrisisDocument(const AStationObject* Object) const;
+    int32 GetCrisisStage() const;
+    FString GetCrisisObjective() const;
+    FString GetCrisisBody() const;
+    FString GetCrisisChoiceLabel(int32 Index) const;
+    FString GetCrisisVoiceForText(const FString& Text) const;
+    TArray<FString> GetCrisisConversation(AActor* Person) const;
+    bool CompleteCrisisConversation(AActor* Person);
+    AActor* GetCrisisGuidance() const;
+    bool HandleCrisisObject(AStationObject* Object);
+    void CompleteCrisisDocument(AStationObject* Object);
+    void CompleteCrisisAction(int32 Action);
+    void PressCrisisChoice();
+    void AdjustCrisis(int32 Direction);
+    void UpdateCrisisWorld();
+    void TickCrisisCommunity();
+    UFUNCTION(BlueprintPure,meta=(DevelopmentOnly)) FString GetCrisisStateJson() const;
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) void AutomationCrisisPreview(int32 MandateChoice=0);
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) bool AutomationCrisisRoundTrip() const;
+    int32 GetCrisisDraft() const {return CrisisDraft;}
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> CrisisObjects;
+    UPROPERTY() TArray<TObjectPtr<ARectLight>> CrisisTaskLights;
+    UPROPERTY() TObjectPtr<USceneComponent> CrisisWheel;
+    int32 CrisisDraft=18,CrisisPending=-1,CrisisWorldAllocation=-99;
+    bool CrisisPreviewEntered=false;
+    bool IsArcChapter() const;
+    bool IsArcMenu() const;
+    bool IsArcDocument(const AStationObject* Object) const;
+    FString GetArcTitle() const;
+    FString GetArcObjective() const;
+    FString GetArcBody() const;
+    FString GetArcChoiceLabel(int32 Index) const;
+    FString GetArcChoicePreview() const;
+    bool IsArcChoiceEnabled(int32 Index) const;
+    int32 GetArcChoiceCount() const;
+    int32 GetArcStage() const;
+    int32 GetArcStepCount() const;
+    TArray<FString> GetArcSteps() const;
+    FString GetArcRecap() const;
+    AActor* GetArcGuidance() const;
+    FString GetArcVoiceForText(const FString& Text) const;
+    TArray<FString> GetArcConversation(AActor* Person) const;
+    bool HandleArcPerson(AStationEngineer* Person);
+    bool HandleArcObject(AStationObject* Object);
+    bool CompleteArcConversation(AActor* Person);
+    void CompleteArcDocument(AStationObject* Object);
+    void CompleteArcAction(int32 Action);
+    void PressArcChoice();
+    void BeginArcScene();
+    void FinishArcScene();
+    void UpdateArcWorld(float Delta);
+    void TickArcCommunity();
+    void TickArc(float Delta);
+    int32 GetArcFact(const FString& Key) const;
+    UFUNCTION(BlueprintPure,meta=(DevelopmentOnly)) AActor* ResolveArcTarget(const FString& Key) const;
+    void FinishArcCredits();
+    float GetArcSkipProgress() const {return FMath::Clamp(ArcSkipTime/.9f,0.f,1.f);}
+    void SetArcSkipHeld(bool Held) {ArcSkipHeld=Held;}
+    UFUNCTION(BlueprintPure,meta=(DevelopmentOnly)) FString GetArcStateJson() const;
+    UFUNCTION(BlueprintPure,meta=(DevelopmentOnly)) FString GetArcCameraStateJson() const;
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) void AutomationArcPreview(int32 PastVariant=0);
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) void AutomationArcAlbumPreview(int32 EndingRoute);
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) bool AutomationArcRoundTrip() const;
+    UPROPERTY() TArray<TObjectPtr<AStationEngineer>> ArcPeople;
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> ArcObjects;
+    TMap<FString,TWeakObjectPtr<AActor>> ArcTargets;
+    UPROPERTY() TArray<TObjectPtr<ARectLight>> ArcLights;
+    bool ArcPreviewEntered=false;
+    bool IsAchievementUnlocked(int32 Index) const;
+    int32 GetAchievementCount() const;
+    FString GetAchievementNote(int32 Index) const;
+    FString GetAchievementPhotoKey(int32 Index) const;
+    FString GetAchievementCaption(int32 Index) const;
+    int32 GetAchievementToastIndex() const;
+    TArray<FStationMapPin> GetNavigationPins() const;
+    FString GetNavigationPlace(AActor* Target) const;
+    FString Toast;
+    float ToastUntil=0;
+    bool IsMenuOpen() const {return Panel!=EStationPanel::None;}
+    FVector TargetPoint(AActor* Target) const;
+private:
+    friend class AStationHUD;
+    void CreateSurveyWorld();
+    void TickSurvey(float Delta);
+    void SyncSurveySources();
+    bool SurveyAvailable(int32 Index) const;
+    bool SurveySolved(int32 Index) const;
+    int32 SurveySiteOf(AActor* Actor) const;
+    int32 NextSurveySite() const;
+    AActor* GetSurveyGuidance() const;
+    FString SurveyObjective() const;
+    bool HandleSurveyObject(AStationObject* Object);
+    void PressSurvey();
+    void SurveyAdjust(int32 Direction);
+    void SurveySelect(int32 Direction);
+    void PlaySurveyPulse();
+    void StopSurveyPulse();
+    void CloseSurvey();
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> SurveySources;
+    UPROPERTY() TObjectPtr<UAudioComponent> SurveyAudio;
+    StationSurvey::State SurveyState;
+    int32 SurveyActive=-1;
+    float SurveyPoll=0;
+    FString SurveyFeedback;
+    bool SurveyShowHint=false;
+    bool HandleMandateObject(AStationObject* Object);
+    bool CompleteMandateConversation(AActor* Person);
+    void CompleteMandateDocument(AStationObject* Object);
+    void PressMandateChoice();
+    void CompleteMandateAction(int32 Action);
+    void TickMandateCommunity(float Delta);
+    bool MandateCanSubmit() const;
+    int32 MandatePendingChoice=-1;
+    bool MandatePreviewEntered=false;
+    bool LoadArcStory();
+    TSharedPtr<FJsonObject> ArcCurrent() const;
+    bool ArcMeets(const TSharedPtr<FJsonObject>& Requirements) const;
+    void ApplyArcEffects(const TSharedPtr<FJsonObject>& Effects);
+    void AdvanceArc(const FString& Next);
+    void FinishArcNode();
+    TSharedPtr<FJsonObject> ArcStory;
+    TMap<FString,TSharedPtr<FJsonObject>> ArcNodes;
+    TMap<FString,FString> ArcVoices;
+    FString ArcPendingNode;
+    int32 ArcPendingChoice=-1;
+    bool ArcDialogueMatched=false,ArcSkipHeld=false;
+    float ArcSceneElapsed=0,ArcSkipTime=0,ArcSceneDuration=0;
+    int32 ArcSceneLine=-1;
+    TArray<float> ArcLineStarts;
+    TArray<FString> ArcSceneLines;
+    UPROPERTY() TObjectPtr<ACameraActor> ArcCamera;
+    UPROPERTY() TObjectPtr<AActor> ArcCameraSubject;
+    UPROPERTY() TObjectPtr<AActor> ArcPreviousView;
+    UPROPERTY() TArray<TObjectPtr<AStationEngineer>> ArcPausedPeople;
+    void SetArcPerformance(const FString& Raw,bool Scene);
+    void UpdateArcCamera(const FString& Raw);
+    void LoadAchievements();
+    void StoreAchievements();
+    void EvaluateAchievements(bool Announce);
+    void TickAchievements(float Delta);
+    bool CanShowAchievementToast() const;
+    UPROPERTY() TObjectPtr<UStationAchievementArchive> AchievementArchive;
+    TArray<int32> AchievementPending;
+    int32 AchievementShowing=-1;
+    float AchievementPoll=0,AchievementToastTime=0,AchievementToastGap=0,AchievementRetry=15;
+    bool AchievementNeedsSave=false;
+    void CreateExperienceWorld();
+    bool HandleExperienceObject(AStationObject* Object);
+    void CloseUrbanRecord();
+    FString GetUrbanBody() const;
+    FString GetUrbanThought() const;
+    void StartQuietMoment(int32 Index);
+    void EndQuietMoment();
+    FString GetQuietMomentText() const;
+    void TickExperience(float Delta);
+    FString GetResumeRecap() const;
+    FString GetBaseObjective() const;
+    FString GetPlaceHint() const;
+    bool ShouldShowWorldGuide(AActor* Target) const;
+    FString GetContextPrompt() const;
+    FString GetDecisionPreview() const;
+    void RememberDialogue(const FString& Line);
+    FString GetDialogueLogBody() const;
+    bool ExperienceReady=false,HadResumeAtEntry=false,ResumeRecapShown=false,ReducedMotion=false,QuietRemembered=false;
+    int32 GuidanceDetail=1,ActiveUrban=-1,QuietIndex=-1,LogPage=0;
+    float VoiceVolume=1.f,EffectsVolume=1.f,PaperClock=0.f,QuietElapsed=0.f,ResumeRecapUntil=0.f;
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> UrbanObjects;
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> QuietObjects;
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> PaperOwners;
+    UPROPERTY() TArray<TObjectPtr<UMaterialInstanceDynamic>> PaperMaterials;
+    TArray<int32> PaperStates;
+    UPROPERTY() TObjectPtr<ACameraActor> QuietCamera;
+    UPROPERTY() TObjectPtr<AActor> QuietPreviousView;
+    void CreateNeighborhood();
+    void ApplyRealityMaterials();
+    void ApplyRealismLighting();
+    void CreateExplorationObjects();
+    bool BeginCivicReview(int32 Phase);
+    void TickNeighborhood(float Delta);
+    void StageNeighborhoodStory(const FString& Film);
+    void StageNeighborhoodStoryShot(int32 Shot);
+    bool GetNeighborhoodStoryCamera(int32 Shot,FVector& A,FVector& B,FVector& Aim,float& Fov) const;
+    FVector NeighborhoodPoint(const TCHAR* Key,FVector Fallback) const;
+    AActor* GetBaseGuidanceTarget() const;
+    bool HandleNeighborhoodObject(AStationObject* Object);
+    void CloseExploration();
+    FString GetExplorationBody() const;
+    FString GetExplorationThought() const;
+    bool NeighborhoodReady=false,RemoteConversation=false;
+    int32 ActiveExploration=-1,CivicReviewPhase=-1;
+    float HomeQuietTime=0,KitchenGateAlpha=0;
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> ExplorationObjects;
+    UPROPERTY() TObjectPtr<AStationObject> FieldRadio;
+    UPROPERTY() TObjectPtr<AStationObject> FieldDesk;
+    UPROPERTY() TObjectPtr<AActor> KitchenGate;
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> ConflictTraces;
+    int32 ActiveConflictTrace=-1;
+    bool CompleteConflictTraceDocument(AStationObject* Object);
+    FString GetConflictTraceDocument(AStationObject* Object) const;
+
+    StationNarrative::Outcome GetNarrativeOutcome() const;
+    FString GetConversationEcho() const;
+    TArray<FString> GetBaseConversation() const;
+    void TickCommunityVignette(float Delta);
+    void CancelCommunityVignette();
+    UPROPERTY() TObjectPtr<AStationEngineer> AmbientStoryTarget;
+    int32 AmbientStoryBit=0;
+    float AmbientStoryElapsed=0,AmbientStoryMinimum=7,AmbientQuietSeconds=0,AmbientStoryCooldown=8;
+    float MusicVolume=.7f;
+    int32 SubtitleScale=0;
+    bool SubtitleBackdrop=true,SceneGuides=true,AmbientStoriesEnabled=true;
+    int32 ScoreRegion=0;
+    float ScoreRegionElapsed=0;
+    void CreateDistrict();
+    void UpdateDistrictState();
+    bool HandleDistrictObject(AStationObject* Object);
+    void PressDistrictChoice();
+    void CompleteDistrictAction(int32 Action);
+    FString GetDistrictBody() const;
+    FString GetDistrictObjective() const;
+    AActor* GetDistrictGuidance() const;
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> DistrictObjects;
+    UPROPERTY() TArray<TObjectPtr<ARectLight>> DistrictTrialLights;
+    int32 DistrictPendingChoice=-1;
+    void CreateScore();
+    void TickScore(float Delta);
+    UPROPERTY() TArray<TObjectPtr<UAudioComponent>> ScoreLayers;
+    TArray<float> ScoreGains;
+    void UpdateDutyActors();
+    void TickDuty(float Delta);
+    void TickDutyCommunity();
+    bool HandleDutyObject(AStationObject* Object);
+    bool IsDutyDocument(const AStationObject* Object) const;
+    void PressDutyChoice();
+    void CompleteDutyAction(int32 Action);
+    void CompleteDutyConversation(AActor* Person);
+    TArray<FString> GetDutyConversation() const;
+    FString GetDutyBody() const;
+    FString GetDutyObjective() const;
+    AActor* GetDutyGuidance() const;
+    AStationObject* GetDutyOrderObject(int32 Index) const;
+    AStationObject* GetDutyFaultObject() const;
+    int32 GetDutyRequiredMask() const;
+    int32 GetDutyNextOrder() const;
+    int32 GetDutyValidJobs() const;
+    bool DutyBaseWorkComplete() const;
+    bool DutyReadyToSettle() const;
+    void SyncDutyCredit();
+    void BeginDutyCalibration(int32 Order);
+    void FinishDutyCalibration();
+    UPROPERTY() TObjectPtr<AStationObject> DutyLoadBank;
+    bool WasDutyCommunity=false;
+    int32 DutyCalibrationOrder=-1,DutyPhase=0;
+    float DutyPressure=12.f,DutyStable=0.f,DutyRepairClock=0.f;
+    bool DutyPressureHeld=false,DutyAssist=false;
+    void UpdateSupplyActors();
+    void TickSupplyCommunity();
+    bool HandleSupplyObject(AStationObject* Object);
+    void PressSupplyChoice();
+    void CompleteSupplyAction(int32 Action);
+    void CompleteSupplyConversation(AActor* Person);
+    bool CompleteSupplyDocument(AStationObject* Object);
+    bool SupplyMeasurementsComplete() const;
+    bool IsSupplyDocument(const AStationObject* Object) const;
+    TArray<FString> GetSupplyConversation() const;
+    FString GetSupplyBody() const;
+    FString GetSupplyObjective() const;
+    AActor* GetSupplyGuidance() const;
+    UPROPERTY() TObjectPtr<AStationObject> WorkAccount;
+    UPROPERTY() TObjectPtr<AStationObject> SupplyParcel;
+    bool WasSupplyCommunity=false;
+    void TickCommunity(float Delta);
+    void UpdateWorkYield();
+    UPROPERTY() TArray<TObjectPtr<AStationEngineer>> WorkYieldPeople;
+    void UpdateConflictActors();
+    bool HandleConflictObject(AStationObject* Object);
+    void PressConflictChoice();
+    void CompleteConflictAction(int32 Action);
+    void CompleteConflictConversation(AActor* Person);
+    TArray<FString> GetConflictConversation() const;
+    FString GetConflictBody() const;
+    FString GetConflictObjective() const;
+    AActor* GetConflictGuidance() const;
+    UPROPERTY() TObjectPtr<AStationObject> ConsignmentCase;
+    UPROPERTY() TObjectPtr<AStationObject> SupplierReturn;
+    UPROPERTY() TObjectPtr<UStaticMeshComponent> CarriedRegulator;
+    float WitnessSeconds=0;
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> Objects;
+    UPROPERTY() TArray<TObjectPtr<ARectLight>> PublicLights;
+    UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> Shutters;
+    UPROPERTY() TArray<TObjectPtr<UMaterialInstanceDynamic>> FixtureMaterials;
+    UPROPERTY() TArray<TObjectPtr<ACameraActor>> Cameras;
+    UPROPERTY() TObjectPtr<AStationEngineer> LinHe;
+    UPROPERTY() TObjectPtr<AStationEngineer> ZhouChi;
+    UPROPERTY() TObjectPtr<AStationObject> AllocationLedger;
+    UPROPERTY() TArray<TObjectPtr<AStationObject>> RationPoints;
+    UPROPERTY() TArray<TObjectPtr<ARectLight>> RationLights;
+    int32 RationDraftMask=0;
+    int32 PendingRationMask=0;
+    UPROPERTY() TObjectPtr<AStationObject> HouseholdArchive;
+    UPROPERTY() TArray<TObjectPtr<ACameraActor>> StoryCameras;
+    UPROPERTY() TObjectPtr<AActor> StoryPreviousView;
+    UPROPERTY() TObjectPtr<UAudioComponent> StoryMusic;
+    UPROPERTY() TObjectPtr<AActor> StoryMemorySet;
+    UPROPERTY() TObjectPtr<ARectLight> StoryMemorySun;
+    UPROPERTY() TObjectPtr<ARectLight> StoryFaceLight;
+    void CreateStoryMemory();
+    void UpdateStoryMemory();
+    UPROPERTY() TArray<TObjectPtr<AStationEngineer>> StoryPeople;
+    TArray<FTransform> StoryPeopleTransforms;
+    TArray<bool> StoryPeoplePaused;
+    FTransform StoryPlayerTransform;
+    FRotator StoryControlRotation;
+    FString StoryFilm;
+    TArray<int32> StoryLineIndices;
+    TArray<float> StoryLineStarts;
+    TArray<float> StoryLineEnds;
+    float StoryElapsed=0;
+    float StoryDuration=0;
+    float StorySkipHeldSeconds=0;
+    int32 StoryCue=-1;
+    bool StorySkipHeld=false;
+    bool StoryManualCapture=false;
+    bool StoryTemporaryLinHe=false;
+    bool StoryTemporaryZhouChi=false;
+    bool StoryOpenPublicationAfter=false;
+    bool StoryAutoAttempted=false;
+    FString StoryPlayerMotion;
+    bool StartStoryFilm(const FString& Film,bool OpenPublicationAfter=false);
+    void FinishStoryFilm(bool MarkSeen=true);
+    void TickStoryFilm(float Delta);
+    void SetStoryCue(int32 Index,bool Silent=false);
+    void UpdateStoryCamera();
+    bool CanPlayStoryFilm(int32 Index) const;
+    bool StoryAutoplayEnabled() const;
+    UPROPERTY() TObjectPtr<AActor> DialoguePreviousView;
+    UPROPERTY() TArray<TObjectPtr<ACameraActor>> DialogueCameras;
+    UPROPERTY() TObjectPtr<APlayerController> PC;
+    UPROPERTY() TObjectPtr<AActor> PreviousView;
+    UPROPERTY() TObjectPtr<AActor> ConversationTarget;
+    UPROPERTY() TObjectPtr<UAudioComponent> AirAudio;
+    UPROPERTY() TObjectPtr<UAudioComponent> IdleAudio;
+    UPROPERTY() TObjectPtr<UAudioComponent> RunAudio;
+    UPROPERTY() TObjectPtr<UAudioComponent> MusicAudio;
+    UPROPERTY() TObjectPtr<UAudioComponent> DialogueAudio;
+    UPROPERTY() TObjectPtr<UAudioComponent> NarrationAudio;
+    UPROPERTY() TObjectPtr<UAudioComponent> ReactionAudio;
+    UPROPERTY() TObjectPtr<AActor> TestOccluder;
+    bool BoundInput=false;
+    bool EReady=true;
+    bool InputLocked=false;
+    bool RiskConversation=false;
+    bool PlayedMusic=false;
+    bool LightCommit=false;
+    int32 ConversationLine=0;
+    int32 CameraIndex=-1;
+    int32 ConfirmSelection=0;
+    int32 SpeechMask=0;
+    int32 C07Line=-1;
+    float C07SpeechTimes[5]={30,34,37,40,42};
+    float C07Duration=46;
+    int32 DialogueCameraSlot=0;
+    bool SmokeWritten=false;
+    FString PresentedText;
+    FString PresentedSpeaker;
+    FString LastObjective;
+    FString PresentedVoiceKey;
+    int32 VisibleCharacters=0;
+    float GlyphClock=0;
+    float GlyphDelay=.09f;
+    float GlyphPeriod=.09f;
+    float ObjectiveElapsed=0;
+    float VoiceMix=1;
+    bool ObjectiveSpoken=false;
+    bool VoiceEnabled=true;
+    int32 SubtitleSpeed=1;
+    bool PlayerSkinConfigured=false;
+    FString PlayerMotionKey;
+    FString PlayerAction;
+    float PlayerActionUntil=0;
+    float MotionSpeed=0;
+    bool LeftSprintHeld=false;
+    bool RightSprintHeld=false;
+    bool SprintActive=false;
+    float SprintExertion=0;
+    float NextReactionTime=0;
+    int32 ReactionCount=0;
+    FString ReactionKey;
+    void PlayCharacterReaction(const FString& Key,FVector Position,float Volume=.36f);
+    void PressLeftSprint();
+    void ReleaseLeftSprint();
+    void PressRightSprint();
+    void ReleaseRightSprint();
+    void ResetSprint();
+    void UpdateSprintState();
+    UPROPERTY() TObjectPtr<AStationObject> PendingActionTarget;
+    FString PendingAction;
+    int32 PendingRepairIndex=-1;
+    float PendingAlignUntil=0;
+    float PendingAlignmentDeadline=0;
+    float PendingFinishTime=0;
+    FVector PendingStandPoint=FVector::ZeroVector;
+    bool PendingContactSound=false;
+    UPROPERTY() TObjectPtr<UAnimationAsset> PlayerMotionAsset;
+    void UpdateCharacterMotion();
+    void PlayPlayerAction(const FString& Action);
+    bool BeginPhysicalAction(AStationObject* Target,const FString& Action,int32 RepairIndex=-1);
+    void TickPhysicalAction(float Delta);
+    void CancelPhysicalAction(bool ShowMessage=true);
+    void BeginPresentation(const FString& RawText,bool Typewriter=true,const FString& ExplicitVoiceKey=TEXT(""));
+    void BeginPanelPresentation();
+    void TickPresentation(float Delta);
+    void UpdateVoiceMix(float Delta);
+    void CompletePresentation();
+    void StopPresentationVoice();
+    void SpeakPresentation(const FString& Key);
+    void UpdateDialogueCamera();
+    void RestoreDialogueCamera();
+    void PrepareC07Timing();
+    FString VoiceForText(const FString& Text) const;
+    void BindControls();
+    void CreateMissionObjects();
+    FVector PlaceOnPavement(const FVector& Position) const;
+    void CreatePublicLighting();
+    void CreateAudio();
+    void UpdateFocus();
+    void OpenPanel(EStationPanel NewPanel);
+    void ClosePanel();
+    void SetInputLock(bool Lock);
+    void Notify(const FString& Text,bool Rejected=false);
+    void SaveProgress();
+    void LoadProgress();
+    void ApplyProgress();
+    void Repair(int32 Index);
+    void StartSupply();
+    void UpdateSupply(float Delta);
+    void FinishSequence();
+    void PlayCue(const TCHAR* Name,FVector Location,float Volume=.5f,bool Spatial=true);
+    UAudioComponent* MakeLoop(const TCHAR* Name,FVector Position,float Volume,bool Spatial);
+    TArray<FString> GetConversation() const;
+    void UpdateAllocationActors();
+    void CompleteAllocationConversation(AActor* Person);
+    void CommitAllocation();
+    TArray<FString> GetAllocationConversation() const;
+    FString GetAllocationDocument() const;
+    FString GetAllocationChoiceBody() const;
+    void UpdateRationActors();
+    void TickRationLights(float Delta);
+    bool HandleRationObject(AStationObject* Object);
+    void OpenRationPlan();
+    void PressRationChoice();
+    void CommitRation();
+    void CompleteRationConversation(AActor* Person);
+    TArray<FString> GetRationConversation() const;
+    FString GetRationDocument(const AStationObject* Object) const;
+    FString GetRationChoiceBody() const;
+    FString GetRationObjective() const;
+    int32 GetRationStage() const;
+    AActor* GetRationGuidance() const;
+};
+
+UCLASS()
+class DAYLIGHTRIGHTS_API AStationHUD : public AHUD
+{
+    GENERATED_BODY()
+public:
+    AStationHUD();
+    virtual void DrawHUD() override;
+    virtual void BeginPlay() override;
+    UFUNCTION(BlueprintPure,meta=(DevelopmentOnly)) FString GetAchievementHUDStateJson() const;
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) FString GetNavigationStateJson(AActor* Target=nullptr);
+private:
+    UPROPERTY() TObjectPtr<UFont> InterfaceFont;
+    void Text(const FString& String,float X,float Y,float Size,FLinearColor Color);
+    float Paragraph(const FString& String,float X,float Y,float Width,float Size,FLinearColor Color);
+    void DrawAchievementBook(AStationDirector* Director,float X,float Y,float Width,float Height);
+    bool DrawSurveyHUD(AStationDirector* Director);
+    void DrawAchievementToast(AStationDirector* Director,float Right,float Bottom);
+    UTexture2D* GetAchievementPhoto(AStationDirector* Director,int32 Index);
+    void DrawAchievementPhoto(AStationDirector* Director,int32 Index,float X,float Y,float Width,float Height,float Alpha=1.f);
+    UPROPERTY() TMap<FString,TObjectPtr<UTexture2D>> AchievementPhotos;
+    TSet<FString> MissingAchievementPhotos;
+    void LoadNavigationPortraits();
+    void RefreshNavigation(AStationDirector* Director,AActor* TargetOverride=nullptr);
+    void DrawNavigation(AStationDirector* Director,float X,float Y,float Width,float Height,bool Expanded);
+    void DrawNavigationInstruction(AStationDirector* Director,float X,float Y,float Width);
+    UPROPERTY() TArray<TObjectPtr<UTexture2D>> NavigationPortraits;
+    UPROPERTY() TObjectPtr<UTexture2D> NavigationBasemap;
+    TWeakObjectPtr<AActor> NavigationTarget;
+    TArray<FVector> NavigationRoute;
+    FVector NavigationStart=FVector::ZeroVector,NavigationGoal=FVector::ZeroVector;
+    float NavigationUpdated=-100.f;
+    bool NavigationVerified=false;
+    float Unit=1;
+};
+
+UCLASS()
+class DAYLIGHTRIGHTS_API AStationGameMode : public AGameModeBase
+{
+    GENERATED_BODY()
+public:
+    AStationGameMode();
+    virtual void BeginPlay() override;
+};

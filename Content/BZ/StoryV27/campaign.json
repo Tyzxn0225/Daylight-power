@@ -1,0 +1,1333 @@
+{
+  "version": 1,
+  "entry": "queue",
+  "nodes": [
+    {
+      "id": "queue",
+      "chapter": 14,
+      "title": "没有地址的人",
+      "target": "he",
+      "kind": "talk",
+      "objective": "到公共厨房找林禾，看看门外发生了什么",
+      "next": "gate_scene",
+      "set": {
+        "shortcut": 1
+      },
+      "lines": [
+        {
+          "text": "林禾：你先别踩那块，刚拖过。阿湛，杯子放里面就行。",
+          "asset": "EV_Arc_001"
+        },
+        {
+          "text": "林照：你把后门打开了？",
+          "asset": "EV_Arc_002"
+        },
+        {
+          "text": "林禾：嗯。你去调阀那会儿，他们还在外面等。我就把送餐门开了。",
+          "asset": "EV_Arc_003"
+        },
+        {
+          "text": "林照：钥匙谁给你的？",
+          "asset": "EV_Arc_004"
+        },
+        {
+          "text": "林禾：我拿的。你先帮我挪一下袋子，门快合不上了。",
+          "asset": "EV_Arc_005"
+        }
+      ]
+    },
+    {
+      "id": "gate_scene",
+      "chapter": 14,
+      "title": "没有地址的人",
+      "target": "gate",
+      "kind": "scene",
+      "objective": "到送餐门旁，看看阿湛为什么进不去",
+      "next": "workcard",
+      "duration": 11,
+      "set": {
+        "gate_seen": 1
+      },
+      "lines": [
+        {
+          "text": "罗婶：等会儿！不是有工牌就能往里进，住哪户，先对上。",
+          "gesture": "Talk",
+          "asset": "EV_Arc_006"
+        },
+        {
+          "text": "阿湛：这门我每天刷两趟。你看，又红了。",
+          "gesture": "Talk",
+          "asset": "EV_Arc_007"
+        },
+        {
+          "text": "罗婶：那是让你进去干活。今晚住下来，算谁那一份？",
+          "asset": "EV_Arc_008"
+        },
+        {
+          "text": "林禾：先让他把湿衣服换了。罗婶，你让一点。",
+          "asset": "EV_Arc_009"
+        }
+      ]
+    },
+    {
+      "id": "workcard",
+      "chapter": 14,
+      "title": "没有地址的人",
+      "target": "card",
+      "kind": "inspect",
+      "objective": "查看阿湛留下的工牌与拒绝记录",
+      "next": "roster_path",
+      "body": "夜班保洁临时工牌\n工作入口：有效。\n住址轮候：未列入。\n\n工牌背面的纸已经起毛，上面写着一个分租门牌。读卡记录却把它归成了空置地址。\n\n门没坏。两份登记互不承认。",
+      "set": {
+        "card_seen": 1
+      }
+    },
+    {
+      "id": "roster_path",
+      "chapter": 14,
+      "title": "没有地址的人",
+      "target": "ro",
+      "kind": "talk",
+      "objective": "向罗婶核对这户分租房的底册",
+      "next": "",
+      "options": [
+        {
+          "label": "交出临时等候名单，换取底册",
+          "next": "records",
+          "set": {
+            "privacy_trade": 1,
+            "record_access": 1
+          },
+          "requires": {},
+          "description": "罗婶会拿到仍在暖房等候的人的名单。",
+          "confirm": true
+        },
+        {
+          "label": "用自己的工牌作抵押，借走底册",
+          "next": "records",
+          "set": {
+            "badge_pledged": 1,
+            "record_access": 1
+          },
+          "requires": {},
+          "description": "林照的通行权限可能被暂扣；不交出等候者姓名。",
+          "confirm": true
+        },
+        {
+          "label": "走林禾打开的送餐通道，查看留存副本",
+          "next": "backdoor",
+          "set": {
+            "service_path": 1
+          },
+          "requires": {},
+          "description": "需要到后门实际开闩，副本不由罗婶经手。",
+          "confirm": false
+        }
+      ],
+      "lines": [
+        {
+          "text": "罗婶：先搭把手，把这袋米靠墙。别一来就拿那张卡冲我。",
+          "asset": "EV_Arc_010"
+        },
+        {
+          "text": "林照：这间房你一直收着租，怎么成了空置？",
+          "asset": "EV_Arc_011"
+        },
+        {
+          "text": "罗婶：按一户报，大家还能留住一份。全写上去，先查我的房，再查他们。你给我兜着？",
+          "asset": "EV_Arc_012"
+        },
+        {
+          "text": "林照：底册拿来。我得看看你到底写了什么。",
+          "asset": "EV_Arc_013"
+        }
+      ]
+    },
+    {
+      "id": "backdoor",
+      "chapter": 14,
+      "title": "没有地址的人",
+      "target": "gate",
+      "kind": "operate",
+      "objective": "到送餐门开闩，从服务通道取用留存副本",
+      "next": "records",
+      "action": "Reach",
+      "set": {
+        "shortcut": 1,
+        "record_access": 1
+      }
+    },
+    {
+      "id": "records",
+      "chapter": 14,
+      "title": "没有地址的人",
+      "target": "records",
+      "kind": "inspect",
+      "objective": "在维修铺工时台查看分租底册与汇总页",
+      "next": "return_meter",
+      "body": "分租底册 / 留存页\n\n一间房记录着三位付租者；上报汇总页只计一户。空置地址的名额没有注销，而被并入了维保优先池。经手处有罗婶的收款记录。\n\n这是两笔不同的钱：租客付房租，维保方按优先池结算。付了前一笔，并没有得到后一笔对应的资格。",
+      "set": {
+        "evidence_roster": 1,
+        "chapter14_done": 1
+      }
+    },
+    {
+      "id": "return_meter",
+      "chapter": 15,
+      "title": "给你一扇窗",
+      "target": "return_meter",
+      "kind": "operate",
+      "objective": "在冷却端保留有时间戳的回水记录",
+      "next": "shen_offer",
+      "action": "Repair",
+      "set": {
+        "evidence_meter": 1
+      }
+    },
+    {
+      "id": "shen_offer",
+      "chapter": 15,
+      "title": "给你一扇窗",
+      "target": "shen",
+      "kind": "talk",
+      "objective": "到恒昼访客廊，与衡昼运营代表沈砚见面",
+      "next": "",
+      "options": [
+        {
+          "label": "进去看看",
+          "next": "window",
+          "set": {
+            "viewed_offer": 1
+          },
+          "requires": {},
+          "description": "亲眼看清这份优待，而后再决定。",
+          "confirm": false
+        },
+        {
+          "label": "留在廊里，直接看条件",
+          "next": "offer_terms",
+          "set": {
+            "viewed_offer": 0
+          },
+          "requires": {},
+          "description": "不进入样板等候间，直接核对清退与维保条款。",
+          "confirm": false
+        }
+      ],
+      "lines": [
+        {
+          "text": "沈砚：外套先别脱，风口还没调好。你就是林照？",
+          "asset": "EV_Arc_014"
+        },
+        {
+          "text": "林照：阀位我已经报过了。",
+          "asset": "EV_Arc_015"
+        },
+        {
+          "text": "沈砚：我看了。我缺一个真敢接电话的人。给你一个稳定地址，岗位跟着走，住的人自己来确认。",
+          "asset": "EV_Arc_016"
+        },
+        {
+          "text": "林照：原来的那份，我八年都没买回来。",
+          "asset": "EV_Arc_017"
+        },
+        {
+          "text": "沈砚：这不是赎回。另一地址，另一份安排。你先看一眼。",
+          "asset": "EV_Arc_018"
+        }
+      ]
+    },
+    {
+      "id": "window",
+      "chapter": 15,
+      "title": "给你一扇窗",
+      "target": "window",
+      "kind": "scene",
+      "objective": "站到亮窗旁，看看这份安排会给你什么",
+      "next": "offer_terms",
+      "duration": 9,
+      "lines": [
+        {
+          "text": "林照：玻璃上没水。",
+          "asset": "EV_Arc_019"
+        },
+        {
+          "text": "沈砚：回水稳，玻璃只是结果。里面的椅子可以坐。",
+          "asset": "EV_Arc_020"
+        },
+        {
+          "text": "林照：……屋里一直这么暖？",
+          "direction": "轻一点，试探，第一次流露想留下的心思。",
+          "asset": "EV_Arc_021"
+        },
+        {
+          "text": "沈砚：你按时来上班，这间屋就给你留着。",
+          "asset": "EV_Arc_022"
+        }
+      ]
+    },
+    {
+      "id": "offer_terms",
+      "chapter": 15,
+      "title": "给你一扇窗",
+      "target": "offer",
+      "kind": "inspect",
+      "objective": "在签发台查看优先地址的交换条件",
+      "next": "offer_decision",
+      "body": "维保管理意向 / 附件\n\n稳定地址与值守管理资格绑定。经手人需确认优先池核验结果，配合清理未列入住户资格的暂留人员。\n\n家庭陪住者须独立确认，不自动列入。原地址的旧押金与供光份额不因此退还。\n\n附件背面，另一条护理地址被列为“关键岗位家属”。经手人：沈砚。",
+      "set": {
+        "evidence_offer": 1
+      }
+    },
+    {
+      "id": "offer_decision",
+      "chapter": 15,
+      "title": "给你一扇窗",
+      "target": "shen",
+      "kind": "talk",
+      "objective": "问清沈砚的例外，并决定如何回应这份意向",
+      "next": "",
+      "options": [
+        {
+          "label": "留下管理意向，接受优先池核验职责",
+          "next": "family",
+          "set": {
+            "offer_position": 1
+          },
+          "requires": {},
+          "description": "保留稳定地址的资格，也留下对清退核验负责的记录。",
+          "confirm": true
+        },
+        {
+          "label": "明确拒绝优先地址",
+          "next": "family",
+          "set": {
+            "offer_position": 0
+          },
+          "requires": {},
+          "description": "沈砚会撤回这份优待，后面不能再直接凭同一意向入住。",
+          "confirm": true
+        },
+        {
+          "label": "只带走副本，暂不接受岗位",
+          "next": "family",
+          "set": {
+            "offer_position": 2
+          },
+          "requires": {},
+          "description": "不接岗位，但沈砚不会无限期留着这个地址。",
+          "confirm": false
+        }
+      ],
+      "lines": [
+        {
+          "text": "林照：护理地址那一条，姓沈。",
+          "asset": "EV_Arc_023"
+        },
+        {
+          "text": "沈砚：我母亲。晚上不能断暖。我没打算把她挪出来给你做样子。",
+          "asset": "EV_Arc_024"
+        },
+        {
+          "text": "林照：那门外那些人呢？",
+          "asset": "EV_Arc_025"
+        },
+        {
+          "text": "沈砚：你已经在分了，林照。你会先接谁的电话？我给你的，是别让自己家永远排在最后的办法。",
+          "asset": "EV_Arc_026"
+        }
+      ]
+    },
+    {
+      "id": "family",
+      "chapter": 15,
+      "title": "给你一扇窗",
+      "target": "he",
+      "kind": "talk",
+      "objective": "回到厨房，告诉林禾你看到了什么",
+      "next": "",
+      "options": [
+        {
+          "label": "把完整附件留给她",
+          "next": "blockade",
+          "set": {
+            "family_honest": 1
+          },
+          "requires": {},
+          "description": "林禾自行读完并决定住在哪里。",
+          "confirm": false
+        },
+        {
+          "label": "暂时收起清退页，只说岗位和住处",
+          "next": "blockade",
+          "set": {
+            "family_honest": 0
+          },
+          "requires": {},
+          "description": "林禾暂时不会从你这里看到清退条件；隐瞒会留下后果。",
+          "confirm": true
+        }
+      ],
+      "set": {
+        "chapter15_done": 1
+      },
+      "lines": [
+        {
+          "text": "林禾：杯里还有点热的。你喝，别拿那个缺口冲着嘴。",
+          "asset": "EV_Arc_027"
+        },
+        {
+          "text": "林照：那边有一间屋。只要我接值守——",
+          "asset": "EV_Arc_028"
+        },
+        {
+          "text": "林禾：那门外的人呢？",
+          "asset": "EV_Arc_029"
+        },
+        {
+          "text": "林照：我把附件带回来了。",
+          "asset": "EV_Arc_030"
+        },
+        {
+          "text": "林禾：放桌上。我今晚留这里。罗婶说床得收，我得先跟阿湛把地方腾出来。",
+          "asset": "EV_Arc_031"
+        }
+      ]
+    },
+    {
+      "id": "blockade",
+      "chapter": 16,
+      "title": "门关上的时候",
+      "target": "gate",
+      "kind": "scene",
+      "objective": "到厨房后门，回应正在发生的争执",
+      "next": "broker",
+      "duration": 13,
+      "set": {
+        "gate_blocked": 1
+      },
+      "lines": [
+        {
+          "text": "罗婶：门先合上！林禾，把手拿开，我没报你收钱！",
+          "gesture": "Talk",
+          "asset": "EV_Arc_032"
+        },
+        {
+          "text": "林禾：你把名字报了，门就不认人了。你还要我把哪句话听清楚？",
+          "asset": "EV_Arc_033"
+        },
+        {
+          "text": "阿湛：衣服在里面。让我拿衣服，我就走。",
+          "asset": "EV_Arc_034"
+        },
+        {
+          "text": "叶岑：别拉了。维修的人还没撤完，这道门先归我管。林照，你过来一下。",
+          "asset": "EV_Arc_035"
+        },
+        {
+          "text": "林禾：你带回来的那几页，为什么少了这张？我在罗婶那里看见的。",
+          "when": {
+            "family_honest": 0
+          },
+          "asset": "EV_Arc_089"
+        },
+        {
+          "text": "林照：我想着，等你肯过去，再慢慢说。",
+          "when": {
+            "family_honest": 0
+          },
+          "asset": "EV_Arc_090"
+        },
+        {
+          "text": "林禾：那我先说了。我不搬。你该办的事去办，别再帮我答应。",
+          "when": {
+            "family_honest": 0
+          },
+          "asset": "EV_Arc_091"
+        },
+        {
+          "text": "林禾：你给我的附件，我看完了。开门是我做的，有什么事，让他们来问我。",
+          "when": {
+            "family_honest": 1
+          },
+          "asset": "EV_Arc_092"
+        }
+      ]
+    },
+    {
+      "id": "broker",
+      "chapter": 16,
+      "title": "门关上的时候",
+      "target": "zhou",
+      "kind": "talk",
+      "objective": "找周驰，问值班名单为什么到了清退员手里",
+      "next": "",
+      "options": [
+        {
+          "label": "让他带你取回留存底联",
+          "next": "courier_copy",
+          "set": {
+            "broker_return": 1
+          },
+          "requires": {},
+          "description": "周驰需要实际走到交接柜；记录能证明经手过程，已泄露信息仍然存在。",
+          "confirm": false
+        },
+        {
+          "label": "先照看被关在门外的人",
+          "next": "worker_help",
+          "set": {
+            "broker_return": 0
+          },
+          "requires": {},
+          "description": "优先处理阿湛的东西，暂时放弃这份经手底联。",
+          "confirm": false
+        }
+      ],
+      "lines": [
+        {
+          "text": "周驰：你先别喊。人都看着。",
+          "asset": "EV_Arc_036"
+        },
+        {
+          "text": "林照：轮班表是你给的？",
+          "asset": "EV_Arc_037"
+        },
+        {
+          "text": "周驰：我卖的是值班时间。他们拿去做什么——行，这句我自己都听烦了。我收钱了。",
+          "asset": "EV_Arc_038"
+        },
+        {
+          "text": "林照：副本在哪？",
+          "asset": "EV_Arc_039"
+        },
+        {
+          "text": "周驰：交接柜。我能拿回来一份。已经送出去的，我拿不回来。",
+          "asset": "EV_Arc_040"
+        }
+      ]
+    },
+    {
+      "id": "courier_copy",
+      "chapter": 16,
+      "title": "门关上的时候",
+      "target": "handoff",
+      "kind": "operate",
+      "objective": "跟周驰到交接点，取回轮班底联",
+      "next": "worker_help",
+      "action": "Reach",
+      "near_person": "zhou",
+      "set": {
+        "evidence_courier": 1
+      }
+    },
+    {
+      "id": "worker_help",
+      "chapter": 16,
+      "title": "门关上的时候",
+      "target": "zhan",
+      "kind": "talk",
+      "objective": "与阿湛商量，他愿意怎样留下自己的经历",
+      "next": "",
+      "options": [
+        {
+          "label": "交出自己的临时工牌，取回他的衣物",
+          "next": "worker_bag",
+          "set": {
+            "badge_revoked": 1
+          },
+          "requires": {},
+          "description": "林照承担临时通行受限的后果，阿湛保留不公开姓名的权利。",
+          "confirm": true
+        },
+        {
+          "label": "请他匿名作证，保留自己的工牌",
+          "next": "worker_witness",
+          "set": {
+            "witness_requested": 1
+          },
+          "requires": {},
+          "description": "他是否配合，取决于名单是否被你交出去。",
+          "confirm": false
+        },
+        {
+          "label": "尊重拒绝，先找叶岑",
+          "next": "crew",
+          "set": {
+            "zhan_witness": 0
+          },
+          "requires": {},
+          "description": "不拿他的沉默当同意；共同监督仍可争取检修组协助。",
+          "confirm": false
+        }
+      ],
+      "lines": [
+        {
+          "text": "阿湛：别给我拍。衣服拿出来就行。",
+          "asset": "EV_Arc_041"
+        },
+        {
+          "text": "林照：我需要证明，名单拿去做了什么。",
+          "asset": "EV_Arc_042"
+        },
+        {
+          "text": "阿湛：用你名字试过没有？一刷就红，还得跟领班解释。",
+          "asset": "EV_Arc_043"
+        },
+        {
+          "text": "林照：我可以先拿自己的工牌去换你的东西。",
+          "asset": "EV_Arc_044"
+        }
+      ]
+    },
+    {
+      "id": "worker_bag",
+      "chapter": 16,
+      "title": "门关上的时候",
+      "target": "bag",
+      "kind": "operate",
+      "objective": "在后门交换台留下工牌，拿出阿湛的工作袋",
+      "next": "worker_witness",
+      "action": "Reach",
+      "set": {
+        "zhan_helped": 1
+      }
+    },
+    {
+      "id": "worker_witness",
+      "chapter": 16,
+      "title": "门关上的时候",
+      "target": "zhan",
+      "kind": "talk",
+      "objective": "把工作袋或匿名记录交还阿湛",
+      "next": "crew",
+      "set": {
+        "record_witness": 1
+      },
+      "lines": [
+        {
+          "text": "阿湛：放这儿。你别替我跟他们说我闹过。",
+          "asset": "EV_Arc_045"
+        },
+        {
+          "text": "林照：只记工牌失效的时间，不放你名字。你看完再说。",
+          "asset": "EV_Arc_046"
+        },
+        {
+          "text": "阿湛：我没说以后都跟你走。今晚这段，可以。",
+          "when": {
+            "witness_allowed": 1
+          },
+          "asset": "EV_Arc_047"
+        },
+        {
+          "text": "阿湛：刚才那张名单，你先给出去了。现在再说不放名字，我不信。",
+          "when": {
+            "witness_allowed": 0
+          },
+          "asset": "EV_Arc_048"
+        }
+      ]
+    },
+    {
+      "id": "crew",
+      "chapter": 16,
+      "title": "门关上的时候",
+      "target": "ye",
+      "kind": "talk",
+      "objective": "听叶岑说明锁门的风险和她愿意承担的部分",
+      "next": "",
+      "options": [
+        {
+          "label": "请检修组提供独立复核",
+          "next": "sanitize",
+          "set": {
+            "crew_support": 1
+          },
+          "requires": {
+            "old_refund": 1
+          },
+          "description": "此前退回的押金使检修组能够抽出人手。",
+          "confirm": false
+        },
+        {
+          "label": "由林照承担四小时返工，换取组内复核",
+          "next": "sanitize",
+          "set": {
+            "crew_support": 1,
+            "extra_hours": 4
+          },
+          "requires": {},
+          "description": "只承诺林照本人的劳动，不牵连家属，不倒扣旧工资。",
+          "confirm": true
+        },
+        {
+          "label": "暂不要求检修组背书",
+          "next": "sanitize",
+          "set": {
+            "crew_support": 0
+          },
+          "requires": {},
+          "description": "保留分歧。匿名工人证词与现场记录仍可能提供另一种支撑。",
+          "confirm": false
+        }
+      ],
+      "lines": [
+        {
+          "text": "叶岑：门是我锁的。你别替我找别人。",
+          "asset": "EV_Arc_049"
+        },
+        {
+          "text": "林照：风险通知你什么时候拿到的？",
+          "asset": "EV_Arc_050"
+        },
+        {
+          "text": "叶岑：早一班。我先把自己人撤了。外面那几个，我以为来得及。",
+          "asset": "EV_Arc_051"
+        },
+        {
+          "text": "叶岑：押金退过，组里还能抽人。独立记录我出，你自己签过的那部分，别藏。",
+          "when": {
+            "old_refund": 1
+          },
+          "asset": "EV_Arc_052"
+        },
+        {
+          "text": "叶岑：组里还在等押金。我再把人拖来，他们先找我。要我帮，你得说清楚返工谁做。",
+          "when": {
+            "old_refund": 0
+          },
+          "asset": "EV_Arc_053"
+        }
+      ]
+    },
+    {
+      "id": "sanitize",
+      "chapter": 16,
+      "title": "门关上的时候",
+      "target": "copies",
+      "kind": "operate",
+      "objective": "在院落桌面制作无住户姓名的核验副本",
+      "next": "decision",
+      "action": "Repair",
+      "set": {
+        "sanitized": 1,
+        "chapter16_done": 1
+      }
+    },
+    {
+      "id": "decision",
+      "chapter": 17,
+      "title": "谁来决定下一轮",
+      "target": "radio",
+      "kind": "talk",
+      "objective": "在检修电台与沈砚对质，并决定接下来怎样行动",
+      "next": "",
+      "remote": "shen",
+      "options": [
+        {
+          "label": "接受管理岗位，为优先池核验背书",
+          "next": "manager_terms",
+          "set": {
+            "route": 0
+          },
+          "requires": {
+            "manager_available": 1
+          },
+          "description": "稳定地址可兑现；你将执行准入核验，林禾仍自行决定是否迁入。",
+          "confirm": true
+        },
+        {
+          "label": "提交匿名事实与共同复核安排",
+          "next": "joint_terms",
+          "set": {
+            "route": 1
+          },
+          "requires": {
+            "joint_available": 1
+          },
+          "description": "放弃个人优待，争取限期共同监督；需要完整现场记录与实际协作者。",
+          "confirm": true
+        },
+        {
+          "label": "只使用已核验旁路，先保住本班暂留",
+          "next": "emergency_terms",
+          "set": {
+            "route": 2
+          },
+          "requires": {},
+          "description": "不取得永久资格，维保方将撤回临时工牌；现场操作需保留通风与住宅联锁。",
+          "confirm": true
+        }
+      ],
+      "lines": [
+        {
+          "text": "沈砚：厨房不是住所。你现在让人进去，明天谁负责？",
+          "asset": "EV_Arc_054"
+        },
+        {
+          "text": "林照：你那份清退表，把实际付租的人写成空房。这个你负责吗？",
+          "asset": "EV_Arc_055"
+        },
+        {
+          "text": "沈砚：我可以停这批核验，前提是有人接下维护和风险。你要我退一步，就拿出能继续运转的安排。",
+          "asset": "EV_Arc_056"
+        },
+        {
+          "text": "林照：我这边的人还在。你听完。",
+          "asset": "EV_Arc_057"
+        },
+        {
+          "text": "林照：轮班底联也拿回来了。什么时候交的，谁经手，上面都有。你别只挑我的名字看。",
+          "when": {
+            "evidence_courier": 1
+          },
+          "asset": "EV_Arc_093"
+        },
+        {
+          "text": "沈砚：留一份。原件别往窗口递，我让核验的人过来对。",
+          "when": {
+            "evidence_courier": 1
+          },
+          "asset": "EV_Arc_094"
+        }
+      ]
+    },
+    {
+      "id": "manager_terms",
+      "chapter": 17,
+      "title": "谁来决定下一轮",
+      "target": "ro",
+      "kind": "talk",
+      "objective": "向罗婶说明准入核验，并承担自己的管理职责",
+      "next": "manager_apply",
+      "set": {
+        "manager_intent": 1
+      },
+      "lines": [
+        {
+          "text": "罗婶：那以后这道门，找你就行了？",
+          "asset": "EV_Arc_058"
+        },
+        {
+          "text": "林照：名单还得重新查。收过租的，不能继续写空房。",
+          "asset": "EV_Arc_059"
+        },
+        {
+          "text": "罗婶：我懂。先把咱们这几户留着，别的慢慢——",
+          "asset": "EV_Arc_060"
+        },
+        {
+          "text": "林照：别替我往下说。工牌给我。",
+          "asset": "EV_Arc_061"
+        }
+      ]
+    },
+    {
+      "id": "manager_apply",
+      "chapter": 17,
+      "title": "谁来决定下一轮",
+      "target": "final_relay",
+      "kind": "operate",
+      "objective": "在签发控制端完成管理接管，启用稳定地址",
+      "next": "aftermath",
+      "action": "Repair",
+      "set": {
+        "ending_route": 0,
+        "gate_resolved": 1,
+        "priority_live": 1
+      }
+    },
+    {
+      "id": "joint_terms",
+      "chapter": 17,
+      "title": "谁来决定下一轮",
+      "target": "he",
+      "kind": "talk",
+      "objective": "与林禾确认谁留守、谁能问责，而非替大家确认",
+      "next": "joint_latch",
+      "set": {
+        "priority_live": 0
+      },
+      "lines": [
+        {
+          "text": "林禾：我能轮一班。剩下的班，得一个个问。",
+          "asset": "EV_Arc_062"
+        },
+        {
+          "text": "林照：那间屋，不留了。",
+          "asset": "EV_Arc_063"
+        },
+        {
+          "text": "林禾：你舍得？",
+          "asset": "EV_Arc_064"
+        },
+        {
+          "text": "林照：舍不得。钥匙我放这儿，你帮我看着，别让我又揣回去。",
+          "gesture": "Talk",
+          "asset": "EV_Arc_065"
+        }
+      ]
+    },
+    {
+      "id": "joint_latch",
+      "chapter": 17,
+      "title": "谁来决定下一轮",
+      "target": "final_relay",
+      "kind": "operate",
+      "objective": "等协作者到场，启用双方可复核的旁路阀位",
+      "next": "aftermath",
+      "action": "Repair",
+      "near_person": "joint_ally",
+      "set": {
+        "ending_route": 1,
+        "gate_resolved": 1,
+        "joint_live": 1
+      }
+    },
+    {
+      "id": "emergency_terms",
+      "chapter": 17,
+      "title": "谁来决定下一轮",
+      "target": "ye",
+      "kind": "talk",
+      "objective": "与叶岑核对本班保全的边界",
+      "next": "bridge_part",
+      "lines": [
+        {
+          "text": "叶岑：只接已量过的余热。住宅和通风，你别碰。",
+          "asset": "EV_Arc_066"
+        },
+        {
+          "text": "林照：工牌会停？",
+          "asset": "EV_Arc_067"
+        },
+        {
+          "text": "叶岑：会。你要真接，我给你盯着表。之后的班，没人替你保证。",
+          "asset": "EV_Arc_068"
+        },
+        {
+          "text": "林照：先把这班做完。表给我。",
+          "asset": "EV_Arc_069"
+        }
+      ]
+    },
+    {
+      "id": "bridge_part",
+      "chapter": 17,
+      "title": "谁来决定下一轮",
+      "target": "part",
+      "kind": "operate",
+      "objective": "取出本班可用的分流接头",
+      "next": "emergency_apply",
+      "action": "Reach",
+      "set": {
+        "bridge_held": 1
+      }
+    },
+    {
+      "id": "emergency_apply",
+      "chapter": 17,
+      "title": "谁来决定下一轮",
+      "target": "final_relay",
+      "kind": "operate",
+      "objective": "接入已测旁路，保留安全联锁并开放本班暂留",
+      "next": "aftermath",
+      "action": "Repair",
+      "set": {
+        "ending_route": 2,
+        "gate_resolved": 1,
+        "badge_revoked": 1,
+        "temporary_live": 1
+      }
+    },
+    {
+      "id": "aftermath",
+      "chapter": 18,
+      "title": "窗后的那个人",
+      "target": "home",
+      "kind": "scene",
+      "objective": "沿回家的路，看看门、灯和工牌发生了什么",
+      "next": "ending_branch",
+      "duration": 12,
+      "lines": [
+        {
+          "text": "林照：钥匙在手里，怎么还是不敢进。",
+          "when": {
+            "ending_route": 0
+          },
+          "asset": "EV_Arc_070"
+        },
+        {
+          "text": "林照：那扇窗还是暗的。我站了一会儿，才往厨房走。",
+          "when": {
+            "ending_route": 1
+          },
+          "asset": "EV_Arc_071"
+        },
+        {
+          "text": "林照：工牌没声了。以前我最怕它叫，现在就这么攥着。",
+          "when": {
+            "ending_route": 2
+          },
+          "asset": "EV_Arc_072"
+        },
+        {
+          "text": "林禾：哥，站门口干什么？先把湿鞋脱了。",
+          "asset": "EV_Arc_073"
+        }
+      ]
+    },
+    {
+      "id": "ending_branch",
+      "chapter": 18,
+      "title": "窗后的那个人",
+      "target": "he",
+      "kind": "branch",
+      "objective": "听完林禾自己的选择",
+      "next": "",
+      "branches": [
+        {
+          "requires": {
+            "ending_route": 0
+          },
+          "next": "ending_manager"
+        },
+        {
+          "requires": {
+            "ending_route": 1
+          },
+          "next": "ending_joint"
+        },
+        {
+          "requires": {
+            "ending_route": 2
+          },
+          "next": "ending_emergency"
+        }
+      ]
+    },
+    {
+      "id": "ending_manager",
+      "chapter": 18,
+      "title": "窗后的那个人",
+      "target": "he",
+      "kind": "talk",
+      "objective": "与林禾说清这扇亮窗里，谁会留下",
+      "next": "credits",
+      "set": {
+        "family_separate": 1,
+        "family_resolved": 1
+      },
+      "lines": [
+        {
+          "text": "林禾：东西我没往那边搬。你别叫车。",
+          "asset": "EV_Arc_074"
+        },
+        {
+          "text": "林照：你先看一眼再——",
+          "asset": "EV_Arc_075"
+        },
+        {
+          "text": "林禾：我看过附件。我今晚睡厨房，明天自己找地方。不是跟你赌气。",
+          "asset": "EV_Arc_076"
+        },
+        {
+          "text": "林照：你杯子还在家。",
+          "asset": "EV_Arc_077"
+        },
+        {
+          "text": "林禾：先放着。你回来的时候，把饭吃了，别又放一夜。",
+          "asset": "EV_Arc_078"
+        }
+      ]
+    },
+    {
+      "id": "ending_joint",
+      "chapter": 18,
+      "title": "窗后的那个人",
+      "target": "he",
+      "kind": "talk",
+      "objective": "与林禾面对仍未赎回的原地址和新的轮候",
+      "next": "credits",
+      "set": {
+        "family_resolved": 1
+      },
+      "lines": [
+        {
+          "text": "林禾：原来那间，还没恢复。窗口刚查过。",
+          "asset": "EV_Arc_079"
+        },
+        {
+          "text": "林照：我知道。今晚也只能去公共那边。",
+          "asset": "EV_Arc_080"
+        },
+        {
+          "text": "林禾：床我问好了，两张分开的。你别把自己那张让出去，又站一夜。",
+          "asset": "EV_Arc_081"
+        },
+        {
+          "text": "林照：我还想说，等我——算了。洗手的地方在哪儿？",
+          "direction": "话起了头又停住，轻一点，不把停顿演成朗诵。",
+          "asset": "EV_Arc_082"
+        },
+        {
+          "text": "林禾：锅边。你先洗，我把饭翻一下。",
+          "asset": "EV_Arc_083"
+        }
+      ]
+    },
+    {
+      "id": "ending_emergency",
+      "chapter": 18,
+      "title": "窗后的那个人",
+      "target": "he",
+      "kind": "talk",
+      "objective": "把停用的工牌放下，听林禾怎样决定下一夜",
+      "next": "credits",
+      "set": {
+        "family_resolved": 1
+      },
+      "lines": [
+        {
+          "text": "林禾：放桌上吧，捏着也不会再响。",
+          "asset": "EV_Arc_084"
+        },
+        {
+          "text": "林照：明天的活，我再去问。",
+          "asset": "EV_Arc_085"
+        },
+        {
+          "text": "林禾：明天我也去。我的班，我自己问。",
+          "asset": "EV_Arc_086"
+        },
+        {
+          "text": "林照：嗯。今天我不先替你跑了。",
+          "asset": "EV_Arc_087"
+        },
+        {
+          "text": "林禾：先坐。汤不多了，你别全舀给我。",
+          "asset": "EV_Arc_088"
+        }
+      ]
+    },
+    {
+      "id": "credits",
+      "chapter": 18,
+      "title": "白昼产权",
+      "target": "home",
+      "kind": "credits",
+      "objective": "故事结束 · 查看这一轮留下的生活与制作信息",
+      "next": "free"
+    },
+    {
+      "id": "free",
+      "chapter": 18,
+      "title": "白昼产权",
+      "target": "home",
+      "kind": "free",
+      "objective": "主线剧情已完成 · 可继续探索、查看人物和成就记录",
+      "next": ""
+    }
+  ],
+  "world": {
+    "people": [
+      {
+        "key": "shen",
+        "name": "沈砚",
+        "base": "ZhouChi",
+        "position": [
+          4600,
+          3650,
+          107
+        ],
+        "variant": "ShenYan"
+      },
+      {
+        "key": "ro",
+        "name": "罗婶",
+        "base": "YeCen",
+        "position": [
+          -5050,
+          1120,
+          107
+        ],
+        "variant": "LuoShen"
+      },
+      {
+        "key": "zhan",
+        "name": "阿湛",
+        "base": "LinZhao",
+        "position": [
+          -4720,
+          1230,
+          107
+        ],
+        "variant": "AZhan"
+      }
+    ],
+    "objects": [
+      {
+        "key": "gate",
+        "name": "送餐通道 · 门闩与读卡器",
+        "position": [
+          -4857.5,
+          1298,
+          19
+        ],
+        "existing": "kitchen_gate"
+      },
+      {
+        "key": "card",
+        "name": "阿湛的工牌与拒绝记录",
+        "position": [
+          -4550,
+          600,
+          3
+        ],
+        "existing": "field_desk"
+      },
+      {
+        "key": "records",
+        "name": "分租底册 · 留存副本",
+        "position": [
+          -3560,
+          2800,
+          19
+        ],
+        "existing": "work_account"
+      },
+      {
+        "key": "return_meter",
+        "name": "回水记录 · 带时标的原始读数",
+        "position": [
+          -640,
+          -1400,
+          3
+        ],
+        "existing": "node_b"
+      },
+      {
+        "key": "window",
+        "name": "恒昼亮窗 · 稳定地址样板",
+        "position": [
+          4400,
+          3400,
+          15
+        ],
+        "existing": "urban_0"
+      },
+      {
+        "key": "offer",
+        "name": "维保岗位意向与清退附件",
+        "position": [
+          4240,
+          3400,
+          15
+        ],
+        "existing": "crisis_source_rich"
+      },
+      {
+        "key": "handoff",
+        "name": "周驰的轮班底联",
+        "position": [
+          -1740,
+          -1740,
+          3
+        ],
+        "existing": "supplier_return"
+      },
+      {
+        "key": "bag",
+        "name": "门外交换台 · 阿湛的工作袋",
+        "position": [
+          -4630,
+          1100,
+          19
+        ]
+      },
+      {
+        "key": "copies",
+        "name": "院内桌面 · 匿名核验副本",
+        "position": [
+          -4550,
+          600,
+          3
+        ],
+        "existing": "field_desk"
+      },
+      {
+        "key": "radio",
+        "name": "检修电台 · 衡昼联络",
+        "position": [
+          -730,
+          -1200,
+          3
+        ],
+        "existing": "field_radio"
+      },
+      {
+        "key": "final_relay",
+        "name": "本班供能签发与联锁端",
+        "position": [
+          -830,
+          -1450,
+          3
+        ],
+        "existing": "crisis_source"
+      },
+      {
+        "key": "part",
+        "name": "本班分流接头",
+        "position": [
+          -3560,
+          2800,
+          19
+        ],
+        "existing": "work_account"
+      },
+      {
+        "key": "home",
+        "name": "林家的门 · 回家",
+        "position": [
+          -3650,
+          2040,
+          19
+        ],
+        "existing": "quiet_home"
+      }
+    ],
+    "chapters": {
+      "14": [
+        "听林禾说发生了什么",
+        "看清门为何不认工牌",
+        "选择取得底册的路径",
+        "核对真实登记"
+      ],
+      "15": [
+        "保留现场回水记录",
+        "进入利益主体的空间",
+        "面对稳定地址的条件",
+        "让家人自行决定"
+      ],
+      "16": [
+        "经历关门与失信",
+        "追问经手人的交易",
+        "选择如何回应被拦的人",
+        "争取协助并制作核验副本"
+      ],
+      "17": [
+        "依据累积条件决定行动",
+        "核对实际承担的代价",
+        "完成现场控制与安全联锁"
+      ],
+      "18": [
+        "亲历空间与资格的结果",
+        "完成家庭关系的回应",
+        "片尾与继续探索"
+      ]
+    }
+  },
+  "voice_count": 94,
+  "theme": "当生存被做成产权，人为了保护自己爱的人，是否也会成为剥夺别人的人？"
+}
