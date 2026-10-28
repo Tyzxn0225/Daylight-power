@@ -422,12 +422,16 @@ void AStationFrontendHUD::DrawHUD()
         {
             Text(TEXT("暨南大学  ·  建筑学毕业设计"),108,224,22,Paper);
             Text(TEXT("建筑、社区生态与互动叙事实验"),108,265,17,Muted);
-            Text(TEXT("建筑与故事方向"),108,335,15,Gold);Text(TEXT("项目作者"),108,364,22,Paper);
+            Text(TEXT("建筑与故事方向"),108,335,15,Gold);Text(TEXT("Tyzxn0225"),108,364,22,Paper);
             Text(TEXT("设计、编程与视觉制作辅助"),108,424,15,Gold);Text(TEXT("OpenAI Codex · ImageGen"),108,453,21,Paper);
             Text(TEXT("引擎与制作工具"),108,514,15,Gold);Text(TEXT("Unreal Engine 5.8  /  Blender"),108,543,21,Paper);
-            Text(TEXT("角色人声采用原型阶段的合成配音。"),108,605,16,Muted);
-            Text(TEXT("完整素材来源与许可记录见工程内制作说明。"),108,635,16,Muted);
-            Text(TEXT("献给每一个想按时回家，却仍被迫等待的人。"),108,680,16,Paper);
+            Text(TEXT("角色人声采用原型阶段的合成配音。"),108,587,16,Muted);
+            Text(TEXT("真人反应音：Dillon Becker / Ian Lampert / Alex Brodie、Cici Fyre"),108,613,13,Muted);
+            Text(TEXT("素材来源与许可随程序附带：THIRD_PARTY_NOTICES.txt"),108,638,13,Muted);
+            Text(TEXT("Daylight Rights uses Unreal® Engine. Unreal® is a trademark or registered trademark"),108,662,10,Muted);
+            Text(TEXT("of Epic Games, Inc. in the United States of America and elsewhere."),108,675,10,Muted);
+            Text(TEXT("Unreal® Engine, Copyright 1998–2026, Epic Games, Inc. All rights reserved."),108,688,10,Muted);
+            Text(TEXT("献给每一个想按时回家，却仍被迫等待的人。"),108,701,14,Paper);
         }
         if(C->Screen==EStationFrontendScreen::ConfirmNew)
         {

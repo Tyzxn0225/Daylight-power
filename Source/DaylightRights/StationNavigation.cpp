@@ -3,6 +3,7 @@
 #include "StationNavigationPolicy.h"
 #include "StationNavigationData.inl"
 #include "StationNeighborhoodData.inl"
+#include "StationCirculationData.inl"
 #include "Engine/Canvas.h"
 #include "Engine/Texture2D.h"
 #include "TextureResource.h"
@@ -125,6 +126,11 @@ FString AStationHUD::GetNavigationStateJson(AActor* Target)
  RefreshNavigation(D,Target);
  TSharedRef<FJsonObject> Root=MakeShared<FJsonObject>();
  Root->SetBoolField(TEXT("verified"),NavigationVerified);
+ Root->SetStringField(TEXT("failure"),NavigationFailure);
+ Root->SetNumberField(TEXT("queries"),NavigationQueries);
+ Root->SetNumberField(TEXT("goal_x"),NavigationGoal.X);
+ Root->SetNumberField(TEXT("goal_y"),NavigationGoal.Y);
+ Root->SetNumberField(TEXT("goal_z"),NavigationGoal.Z);
  Root->SetStringField(TEXT("target"),NavigationTarget.IsValid()?NavigationTarget->GetName():TEXT(""));
  TArray<TSharedPtr<FJsonValue>> Points;
  for(const FVector& P:NavigationRoute){TArray<TSharedPtr<FJsonValue>> Values;Values.Add(MakeShared<FJsonValueNumber>(P.X));Values.Add(MakeShared<FJsonValueNumber>(P.Y));Values.Add(MakeShared<FJsonValueNumber>(P.Z));Points.Add(MakeShared<FJsonValueArray>(Values));}
@@ -139,7 +145,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  if(!IsValid(Guide)){NavigationRoute.Empty();NavigationTarget.Reset();NavigationVerified=false;return;}
  const FVector Here=Pawn->GetActorLocation(),Target=Guide->GetActorLocation();
  if(!StationNavigation::Replan(NavigationTarget.Get()==Guide,Now-NavigationUpdated,FVector::Dist2D(Here,NavigationStart),FVector::Dist2D(Target,NavigationGoal)))return;
- NavigationUpdated=Now;NavigationTarget=Guide;NavigationGoal=Target;NavigationStart=Here;NavigationRoute.Empty();NavigationVerified=false;
+ NavigationUpdated=Now;NavigationTarget=Guide;NavigationGoal=Target;NavigationStart=Here;NavigationRoute.Empty();NavigationVerified=false;NavigationFailure.Empty();NavigationQueries=0;
  FVector Goal=Target;
  if(auto* Object=Cast<AStationObject>(Guide))Goal+=Object->GetActorRightVector()*72.f;
  else Goal+=(Here-Target).GetSafeNormal2D()*145.f;
@@ -148,6 +154,15 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  const auto Shape=FCollisionShape::MakeCapsule(Radius,FMath::Max(Radius,Half-18.f));
  FCollisionQueryParams Q(SCENE_QUERY_STAT(StoryNavigation),false,Pawn);Q.AddIgnoredActor(Guide);Q.AddIgnoredActor(D);
  FCollisionQueryParams MovementQ(SCENE_QUERY_STAT(StoryNavigationBody),false,Pawn);MovementQ.AddIgnoredActor(D);
+ auto BodyClear=[&](FVector A,FVector B)
+ {
+  FHitResult Hit;
+  // The shorter lower sweep permits normal step-up. Restore the real capsule's
+  // head clearance separately so a low lintel cannot produce a false route.
+  if(GetWorld()->SweepSingleByChannel(Hit,A+FVector(0,0,5),B+FVector(0,0,5),FQuat::Identity,ECC_Pawn,Shape,MovementQ))return false;
+  const FVector Head(0,0,Half-Radius+5);
+  return !GetWorld()->SweepSingleByChannel(Hit,A+Head,B+Head,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeSphere(Radius),MovementQ);
+ };
  // Prefer the engine's walkable navigation data when the level provides it.
  if(auto* Nav=FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
  {
@@ -157,38 +172,52 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
    {
     bool Clear=true;
     for(int32 I=1;Clear&&I<Path->PathPoints.Num();++I)
-    {FHitResult Hit;Clear=!GetWorld()->SweepSingleByChannel(Hit,Path->PathPoints[I-1]+FVector(0,0,Half+5),Path->PathPoints[I]+FVector(0,0,Half+5),FQuat::Identity,ECC_Pawn,Shape,MovementQ);}
+    {Clear=BodyClear(Path->PathPoints[I-1]+FVector(0,0,Half),Path->PathPoints[I]+FVector(0,0,Half));}
     if(Clear){NavigationRoute=Path->PathPoints;NavigationVerified=true;return;}
    }
  }
  // The existing community's authored circulation graph is the fallback. Every
  // traversed edge is swept against the current world, including the kitchen gate.
- // Upper levels without valid navigation intentionally receive bearing-only cues.
- const float Feet=Here.Z-Half;
- auto Ground=[&](FVector P,FVector& Result)
+ // Resolve each node at its authored floor, not at the player's current floor.
+ // Otherwise starting on the ground erases the terrace, and starting upstairs
+ // erases every street. A short trace window also keeps overlapping floors apart.
+ auto Ground=[&](FVector P,float ExpectedFeet,FVector& Result)
  {
   FHitResult Hit;
-  if(!GetWorld()->LineTraceSingleByChannel(Hit,FVector(P.X,P.Y,Feet+65),FVector(P.X,P.Y,Feet-70),ECC_WorldStatic,Q)||Hit.ImpactNormal.Z<.7f)return false;
+  if(!GetWorld()->LineTraceSingleByChannel(Hit,FVector(P.X,P.Y,ExpectedFeet+65),FVector(P.X,P.Y,ExpectedFeet-70),ECC_WorldStatic,Q)||Hit.ImpactNormal.Z<.7f)return false;
   Result=Hit.ImpactPoint+FVector(0,0,Half);return true;
  };
- FVector GroundGoal;if(!Ground(Goal,GroundGoal))return;
+ float GoalFloor=Target.Z;
+ if(const auto* Person=Cast<ACharacter>(Guide))GoalFloor-=Person->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+ FVector GroundGoal;if(!Ground(Goal,GoalFloor,GroundGoal)){NavigationFailure=TEXT("goal_floor_unavailable");return;}
  TArray<FVector> Positions={Here,GroundGoal};TArray<bool> Grounded={true,true};
- for(const auto& P:Neighborhood16::RouteNodes){FVector G;const bool OK=Ground(P,G);Positions.Add(OK?G:FVector(P.X,P.Y,Here.Z));Grounded.Add(OK);}
+ for(const auto& P:Neighborhood16::RouteNodes){FVector G;const bool OK=Ground(P,P.Z,G);Positions.Add(OK?G:P+FVector(0,0,Half));Grounded.Add(OK);}
  // Transit spines are shared with the existing NPC routines, not drawn through buildings.
  const FVector Transit[]={FVector(-700,4200,0),FVector(-400,4800,0),FVector(400,4800,0),FVector(-400,5650,0),FVector(400,5650,0),FVector(-400,6500,0),FVector(400,6500,0),FVector(-400,8200,0),FVector(400,8200,0),FVector(-2200,8700,0),FVector(-2200,9800,0),FVector(900,9900,0),FVector(900,11900,0),FVector(2200,12300,0),FVector(-4200,11500,0),FVector(500,11700,0),FVector(1200,10500,0),FVector(4400,2000,15),FVector(4400,800,15),FVector(4400,-400,15),FVector(4400,-1600,15),FVector(4400,-2800,15),FVector(4400,-3350,15)};
  const int32 Extra=Positions.Num();
- for(const auto& P:Transit){FVector G;const bool OK=Ground(P,G);Positions.Add(OK?G:FVector(P.X,P.Y,Here.Z));Grounded.Add(OK);}
+ auto AddFloorNode=[&](FVector P){FVector G;const bool OK=Ground(P,P.Z,G);Positions.Add(OK?G:P+FVector(0,0,Half));Grounded.Add(OK);};
+ for(const auto& P:Transit)AddFloorNode(P);
+ // The existing 1.15 m-wide, two-flight stair: twenty 150/300 mm steps,
+ // half landing, top landing, side bridge and terrace deck. These coordinates
+ // follow the exported geometry; a route is still accepted only after sweeps.
+ for(const FVector& P:StationCirculation30::TerraceNodes)AddFloorNode(P);
  // Reader stands and people remain physical obstacles. Local approach nodes
  // allow a short route around their body instead of drawing through it.
  const int32 ApproachStart=Positions.Num();
  for(const FVector Center:{Here,GroundGoal})for(int32 I=0;I<8;++I)
  {
   const float Angle=I*PI/4;const FVector P=Center+FVector(FMath::Cos(Angle)*185,FMath::Sin(Angle)*185,0);
-  FVector G;const bool OK=Ground(P,G);Positions.Add(OK?G:P);Grounded.Add(OK);
+  FVector G;const bool OK=Ground(P,Center.Z-Half,G);Positions.Add(OK?G:P);Grounded.Add(OK);
  }
  std::vector<StationNavigation::Point> Nodes;for(const FVector& P:Positions)Nodes.push_back(XY(P));
  std::vector<StationNavigation::EdgeLink> Edges;
  for(const auto& E:Neighborhood16::RouteEdges)Edges.push_back({E.X+2,E.Y+2});
+ // Prop relocation can open a useful corner between two authored points that
+ // were not neighbours in the original layout. Match the NPC circulation
+ // planner's local visibility links; collision still decides every edge.
+ for(int32 I=2;I<Extra;++I)for(int32 J=2;J<I;++J)
+  if(Grounded[I]&&Grounded[J]&&FVector::DistSquared2D(Positions[I],Positions[J])<=1250.f*1250.f)
+   Edges.push_back({I,J});
  for(int32 I=2;I<Positions.Num();++I)
  {
   if(FVector::Dist2D(Positions[0],Positions[I])<1400)Edges.push_back({0,I});
@@ -201,16 +230,23 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  {
   const uint64 Key=(uint64(FMath::Min(I,J))<<32)|uint64(FMath::Max(I,J));if(const bool* Found=Cache.Find(Key))return *Found;
   if(!Grounded[I]||!Grounded[J])return false;
-  if(++Queries>320){Exhausted=true;return false;}
-  const FVector A=Positions[I],B=Positions[J];FHitResult Hit;
-  bool OK=!GetWorld()->SweepSingleByChannel(Hit,A+FVector(0,0,5),B+FVector(0,0,5),FQuat::Identity,ECC_Pawn,Shape,MovementQ);
-  const int32 Samples=FMath::CeilToInt(FVector::Dist2D(A,B)/110.f);
+  if(Queries>=320){Exhausted=true;return false;}NavigationQueries=++Queries;
+  const FVector A=Positions[I],B=Positions[J];
+  // No vertical shortcut between overlapping floors, and no route drawn over
+  // a cliff or a handrail just because its endpoints have valid floors.
+  const float Run=FVector::Dist2D(A,B),Rise=FMath::Abs(A.Z-B.Z);
+  if(Rise>FMath::Max(20.f,Run*.75f)){Cache.Add(Key,false);return false;}
+  bool OK=BodyClear(A,B);
+  const int32 Samples=FMath::Max(1,FMath::CeilToInt(Run/(Rise>10.f?20.f:110.f)));
   for(int32 K=1;OK&&K<Samples;++K)
-  {FVector G;const FVector P=FMath::Lerp(A,B,float(K)/Samples);OK=Ground(P,G)&&FMath::Abs(G.Z-P.Z)<40.f;}
+  {FVector G;const FVector P=FMath::Lerp(A,B,float(K)/Samples);OK=Ground(P,P.Z-Half,G)&&FMath::Abs(G.Z-P.Z)<40.f;}
   Cache.Add(Key,OK);return OK;
  };
  const auto Path=StationNavigation::Path(Nodes,Edges,Clear);
- if(!Exhausted&&Path.size()>1){for(int32 I:Path)NavigationRoute.Add(Positions[I]-FVector(0,0,Half-5));NavigationVerified=true;}
+ // A budget exhausted on a rejected branch does not invalidate another route
+ // whose every edge was already swept and cached as clear.
+ if(Path.size()>1){for(int32 I:Path)NavigationRoute.Add(Positions[I]-FVector(0,0,Half-5));NavigationVerified=true;}
+ else NavigationFailure=Exhausted?TEXT("query_budget_exhausted"):TEXT("no_clear_circulation_route");
 }
 
 void AStationHUD::DrawNavigation(AStationDirector* D,float X,float Y,float Width,float Height,bool Expanded)
@@ -346,7 +382,7 @@ void AStationHUD::DrawNavigationInstruction(AStationDirector* D,float X,float Y,
  FString Cue;
  if(Focused)Cue=TEXT("E  ")+D->GetContextPrompt().RightChop(3);
  else if(Arrive)Cue=TEXT("已到目标附近 · 面向目标按 E");
- else if(!SameFloor&&FVector::Dist2D(Here,Goal)<700)Cue=Goal.Z>Here.Z?TEXT("↑  目标在上层 · 寻找楼梯入口"):TEXT("↓  目标在下层 · 沿坡道进入");
+ else if(!NavigationVerified&&!SameFloor&&FVector::Dist2D(Here,Goal)<700)Cue=Goal.Z>Here.Z?TEXT("↑  目标在上层 · 寻找楼梯入口"):TEXT("↓  目标在下层 · 沿楼梯或坡道进入");
  else
  {
   const auto Dir=StationNavigation::Direction(StationNavigation::SignedBearing(XY(PlayerOwner->GetControlRotation().Vector()),XY(Next-Here)));

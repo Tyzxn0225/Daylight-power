@@ -3,6 +3,7 @@
 #include <cmath>
 #include <limits>
 #include <queue>
+#include <tuple>
 #include <vector>
 
 // Engine-independent navigation math, also exercised by the offline checks.
@@ -51,12 +52,19 @@ std::vector<int> Path(const std::vector<Point>& nodes,const std::vector<EdgeLink
  std::vector<std::vector<int>> links(nodes.size());
  for(auto e:edges)if(e.a>=0&&e.b>=0&&e.a<int(nodes.size())&&e.b<int(nodes.size())&&e.a!=e.b){links[e.a].push_back(e.b);links[e.b].push_back(e.a);}
  const double inf=std::numeric_limits<double>::infinity();std::vector<double> g(nodes.size(),inf);std::vector<int> parent(nodes.size(),-1);std::vector<bool> closed(nodes.size(),false);
- using Entry=std::pair<double,int>;std::priority_queue<Entry,std::vector<Entry>,std::greater<Entry>> q;g[0]=0;q.push({Length(nodes[1]-nodes[0]),0});
+ // Validate an edge only when its candidate route is popped as promising.
+ // Eagerly sweeping every neighbour can consume the collision budget on
+ // distant branches before a short, physically clear route is considered.
+ using Entry=std::tuple<double,double,int,int>;
+ std::priority_queue<Entry,std::vector<Entry>,std::greater<Entry>> q;
+ q.push({Length(nodes[1]-nodes[0]),0.,-1,0});
  while(!q.empty())
  {
-  int i=q.top().second;q.pop();if(closed[i])continue;closed[i]=true;
+  const auto [score,cost,from,i]=q.top();q.pop();if(closed[i])continue;
+  if(from>=0&&!clear(from,i))continue;
+  g[i]=cost;parent[i]=from;closed[i]=true;
   if(i==1){std::vector<int> path;for(int k=1;k>=0;k=parent[k])path.push_back(k);std::reverse(path.begin(),path.end());return path;}
-  for(int j:links[i])if(!closed[j]){double v=g[i]+Length(nodes[j]-nodes[i]);if(v<g[j]&&clear(i,j)){g[j]=v;parent[j]=i;q.push({v+Length(nodes[1]-nodes[j]),j});}}
+  for(int j:links[i])if(!closed[j]){double v=g[i]+Length(nodes[j]-nodes[i]);if(v<g[j])q.push({v+Length(nodes[1]-nodes[j]),v,i,j});}
  }
  return {};
 }

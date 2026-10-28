@@ -5,6 +5,10 @@
   "Description": "Daylight Rights architecture graduation prototype",
   "Plugins": [
     {
+      "Enabled": false,
+      "Name": "AndroidFileServer"
+    },
+    {
       "Enabled": true,
       "Name": "EnhancedInput"
     },

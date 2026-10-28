@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def git(*args):return subprocess.check_output(['git','-C',str(ROOT),*args])
 rules={
  'token':re.compile(rb'(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,}|sk-[A-Za-z0-9_-]{24,}|AKIA[A-Z0-9]{16})'),
- 'assigned_secret':re.compile(rb'''(?i)(?:api[_-]?key|password|client[_-]?secret|access[_-]?token)\s*[=:]\s*["']([A-Za-z0-9+/._-]{16,})["']'''),
+ 'assigned_secret':re.compile(rb'''(?i)(?:api[_-]?key|password|client[_-]?secret|access[_-]?token|security[_-]?token)\s*[=:]\s*["']?([A-Za-z0-9+/._-]{16,})["']?'''),
  'private_key':re.compile(rb'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),
  'windows_absolute_path':re.compile(rb'(?<![A-Za-z0-9])[A-Za-z]:[\\/]{1,2}(?:Users|UE|Chatgpt|Program Files|Windows|Git|BuildTools|[^\s"\r\n]{2,})',re.I),
  'unix_home_path':re.compile(rb'/(?:Users|home|mnt)/[^\s"\r\n]+'),

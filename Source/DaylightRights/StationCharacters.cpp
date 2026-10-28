@@ -159,11 +159,23 @@ void AStationDirector::UpdateCharacterMotion()
             Skin->SetRelativeRotation(FRotator(0,-90,0));Skin->SetRelativeScale3D(FVector(1));PlayerSkinConfigured=true;
             Character->GetCharacterMovement()->MaxAcceleration=StationRealism::Enabled()?1350.f:1800.f;
             Character->GetCharacterMovement()->BrakingDecelerationWalking=StationRealism::Enabled()?1550.f:1700.f;
-            Character->GetCharacterMovement()->RotationRate=FRotator(0,StationRealism::Enabled()?360.f:480.f,0);
+            Character->GetCharacterMovement()->RotationRate=FRotator(0,540.f,0);
+            Character->bUseControllerRotationYaw=false;
         }
     }
     if(!PlayerSkinConfigured)return;
     const float Speed=Character->GetVelocity().Size2D();
+    auto* Movement=Character->GetCharacterMovement();
+    Movement->bOrientRotationToMovement=!StationRealism::Enabled();
+    if(StationRealism::Enabled()&&Speed>8&&!PC->IsMoveInputIgnored()&&!IsStoryFilmActive()&&!IsPhysicalActionActive())
+    {
+        // Follow actual momentum during a pivot, rather than turning the body
+        // backwards as soon as opposite acceleration is requested.
+        FRotator Facing=Character->GetVelocity().GetSafeNormal2D().Rotation();
+        Facing.Pitch=0;Facing.Roll=0;
+        const float TurnRate=FMath::Lerp(540.f,900.f,FMath::Clamp(Speed/StationMovement::Sprint,0.f,1.f));
+        Character->SetActorRotation(FMath::RInterpConstantTo(Character->GetActorRotation(),Facing,Delta,TurnRate));
+    }
     MotionSpeed=Speed<3?0:Speed;
     FString Next=Speed>StationMovement::Travel+70?TEXT("Run"):Speed>StationMovement::Stroll+60?TEXT("Jog"):Speed>8?TEXT("Walk"):TEXT("Idle");
     if(Character->GetCharacterMovement()->IsFalling())Next=TEXT("Jump");

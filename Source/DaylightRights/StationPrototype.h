@@ -843,6 +843,8 @@ private:
     FVector NavigationStart=FVector::ZeroVector,NavigationGoal=FVector::ZeroVector;
     float NavigationUpdated=-100.f;
     bool NavigationVerified=false;
+    FString NavigationFailure;
+    int32 NavigationQueries=0;
     float Unit=1;
 };
 
