@@ -224,7 +224,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  auto Ground=[&](FVector P,float ExpectedFeet,FVector& Result)
  {
   FHitResult Hit;
-  const bool HitFloor=GetWorld()->LineTraceSingleByChannel(Hit,FVector(P.X,P.Y,ExpectedFeet+65),FVector(P.X,P.Y,ExpectedFeet-70),ECC_WorldStatic,Q);
+  const bool HitFloor=GetWorld()->LineTraceSingleByObjectType(Hit,FVector(P.X,P.Y,ExpectedFeet+65),FVector(P.X,P.Y,ExpectedFeet-70),FCollisionObjectQueryParams(ECC_WorldStatic),Q);
   if(TransientHit(Hit))CacheableProbe=false;
   if(!HitFloor||Hit.ImpactNormal.Z<.7f||FMath::Abs(Hit.ImpactPoint.Z-ExpectedFeet)>StepHeight)
   {if(TraceDebug)UE_LOG(LogTemp,Display,TEXT("NAV30_FLOOR_FAIL at=%s expected=%f actor=%s normal=%s"),*P.ToString(),ExpectedFeet,*GetNameSafe(Hit.GetActor()),*Hit.ImpactNormal.ToString());return false;}
@@ -238,7 +238,13 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  // keeping authored floor nodes and character feet on their precise windows.
  const bool GoalSupported=Ground(Goal,GoalFloor,GroundGoal)||
   (Cast<AStationObject>(Guide)&&Ground(Goal,GoalFloor-65.f,GroundGoal));
- if(!GoalSupported){NavigationFailure=TEXT("goal_floor_unavailable");return;}
+ if(!GoalSupported)
+ {
+  // Readable boards and people have a virtual goal, not a mandatory physical
+  // stand point. A blocked reference must not discard their other approaches.
+  if(UseApproaches)GroundGoal=FVector(Target.X,Target.Y,GoalFloor+Half);
+  else {NavigationFailure=TEXT("goal_floor_unavailable");return;}
+ }
  if(TraceDebug)UE_LOG(LogTemp,Display,TEXT("NAV30_QUERY target=%s from=%s goal=%s goal_floor=%f half=%f radius=%f"),*GetNameSafe(Guide),*Here.ToString(),*GroundGoal.ToString(),GoalFloor,Half,Radius);
  TArray<FVector> Positions={Here,GroundGoal};TArray<bool> Grounded={true,true};
  for(const auto& P:Neighborhood16::RouteNodes){FVector G;const bool OK=Ground(P,P.Z,G);Positions.Add(OK?G:P+FVector(0,0,Half));Grounded.Add(OK);}
@@ -271,7 +277,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
   // Retain the established close approach at narrow workbenches when it is
   // still physically clear; the wider alternatives are fallbacks, not a
   // replacement that can erase an already usable service position.
-  if(ObjectGoal&&BodyClear(GroundGoal,GroundGoal))
+  if(ObjectGoal&&GoalSupported&&BodyClear(GroundGoal,GroundGoal))
   {
    FHitResult Hit;
    if(!GetWorld()->LineTraceSingleByChannel(Hit,GroundGoal+FVector(0,0,55),Interaction,ECC_Visibility,Q))
