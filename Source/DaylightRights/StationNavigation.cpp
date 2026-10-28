@@ -151,6 +151,11 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  FVector Goal=Target;
  if(auto* Object=Cast<AStationObject>(Guide))Goal+=Object->GetActorRightVector()*72.f;
  const bool PersonGoal=Cast<AStationEngineer>(Guide)!=nullptr;
+ const auto* ObjectGoal=Cast<AStationObject>(Guide);
+ // Readable boards allow either visible side. Hands-on devices retain their
+ // authored front position, shared with physical-action alignment.
+ const bool ReadableGoal=ObjectGoal&&(ObjectGoal->IsServiceRequest()||ObjectGoal->Kind==EStationObjectKind::Notice||ObjectGoal->Kind==EStationObjectKind::AllocationLedger||ObjectGoal->Kind==EStationObjectKind::WorkAccount);
+ const bool UseApproaches=PersonGoal||ReadableGoal;
  auto* Character=Cast<ACharacter>(Pawn);const float Half=Character?Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight():88.f;
  const float Radius=Character?FMath::Max(30.f,Character->GetCapsuleComponent()->GetScaledCapsuleRadius()):34.f;
  const auto Shape=FCollisionShape::MakeCapsule(Radius,FMath::Max(Radius,Half-18.f));
@@ -225,24 +230,37 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
   const float Angle=I*PI/4;const FVector P=Center+FVector(FMath::Cos(Angle)*185,FMath::Sin(Angle)*185,0);
   FVector G;const bool OK=Ground(P,Center.Z-Half,G);Positions.Add(OK?G:P);Grounded.Add(OK);
  }
- // A person can stand beside a wall or table. Choose among reachable speaking
- // positions rather than insisting on the side nearest the player. Node 1 is
+ // People and reader stands can be beside a wall or table. Choose reachable
+ // interaction positions instead of insisting on one fixed side. Node 1 is
  // a virtual sink only: its final link is never displayed or walked through
  // the NPC's physical capsule.
  TSet<int32> SpeakingNodes;
- if(PersonGoal)
+ if(UseApproaches)
  {
-  const float Bearing=FMath::Atan2(Here.Y-Target.Y,Here.X-Target.X);
+  const FVector Interaction=ObjectGoal?ObjectGoal->GetInteractionPoint():Cast<AStationEngineer>(Guide)->GetInteractionPoint();
+  // Retain the established close approach at narrow workbenches when it is
+  // still physically clear; the wider alternatives are fallbacks, not a
+  // replacement that can erase an already usable service position.
+  if(ObjectGoal&&BodyClear(GroundGoal,GroundGoal))
+  {
+   FHitResult Hit;
+   if(!GetWorld()->LineTraceSingleByChannel(Hit,GroundGoal+FVector(0,0,55),Interaction,ECC_Visibility,Q))
+   {SpeakingNodes.Add(Positions.Num());Positions.Add(GroundGoal);Grounded.Add(true);}
+  }
+  const FVector Center(Interaction.X,Interaction.Y,Target.Z);
+  const float Bearing=FMath::Atan2(Here.Y-Center.Y,Here.X-Center.X);
   for(int32 I=0;I<8;++I)
   {
    const float Angle=Bearing+I*PI/4;
-   const FVector P=Target+FVector(FMath::Cos(Angle)*130,FMath::Sin(Angle)*130,0);
-   FVector G;if(!Ground(P,GoalFloor,G)||!BodyClear(G,G))continue;
-   FHitResult Hit;const FVector Eye=G+FVector(0,0,45);
-   if(GetWorld()->LineTraceSingleByChannel(Hit,Eye,Cast<AStationEngineer>(Guide)->GetInteractionPoint(),ECC_Visibility,Q))continue;
+   const float StandOff=PersonGoal?130.f:90.f;
+   const FVector P=Center+FVector(FMath::Cos(Angle)*StandOff,FMath::Sin(Angle)*StandOff,0);
+   FVector G;
+   if(!(Ground(P,GoalFloor,G)||(ObjectGoal&&Ground(P,GoalFloor-65.f,G)))||!BodyClear(G,G))continue;
+   FHitResult Hit;const FVector Eye=G+FVector(0,0,55);
+   if(GetWorld()->LineTraceSingleByChannel(Hit,Eye,Interaction,ECC_Visibility,Q))continue;
    SpeakingNodes.Add(Positions.Num());Positions.Add(G);Grounded.Add(true);
   }
-  if(SpeakingNodes.IsEmpty()){NavigationFailure=TEXT("no_clear_speaking_position");return;}
+  if(SpeakingNodes.IsEmpty()){NavigationFailure=TEXT("no_clear_interaction_position");return;}
  }
  std::vector<StationNavigation::Point> Nodes;for(const FVector& P:Positions)Nodes.push_back(XY(P));
  std::vector<StationNavigation::EdgeLink> Edges;
@@ -250,38 +268,63 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  // Prop relocation can open a useful corner between two authored points that
  // were not neighbours in the original layout. Match the NPC circulation
  // planner's local visibility links; collision still decides every edge.
- for(int32 I=2;I<Extra;++I)for(int32 J=2;J<I;++J)
-  if(Grounded[I]&&Grounded[J]&&FVector::DistSquared2D(Positions[I],Positions[J])<=1250.f*1250.f)
-   Edges.push_back({I,J});
+ // Try the authored street/door topology first. Densely connecting rooms
+ // across walls spends the budget on impossible shortcuts before reaching
+ // their real doorway. Additional local links are a second-pass fallback.
+ auto ConnectLocal=[&](int32 Index,int32 End,float Reach)
+ {
+  TArray<TPair<float,int32>> Near;
+  for(int32 J=2;J<End;++J)if(J!=Index&&Grounded[J])
+  {const float Distance=FVector::DistSquared2D(Positions[Index],Positions[J]);if(Distance<Reach*Reach)Near.Emplace(Distance,J);}
+  Near.Sort([](const auto& A,const auto& B){return A.Key<B.Key;});
+  for(int32 K=0;K<FMath::Min(12,Near.Num());++K)Edges.push_back({Index,Near[K].Value});
+ };
+ // Endpoint links enter the nearby circulation network. Connecting every
+ // endpoint to every room within fourteen metres produces hundreds of
+ // across-wall candidates and can starve the actual door route.
+ ConnectLocal(0,ApproachStart,1400);
+ if(!UseApproaches)ConnectLocal(1,ApproachStart,1400);
  for(int32 I=2;I<Positions.Num();++I)
  {
-  if(FVector::Dist2D(Positions[0],Positions[I])<1400)Edges.push_back({0,I});
-  if(PersonGoal?SpeakingNodes.Contains(I):FVector::Dist2D(Positions[1],Positions[I])<1400)Edges.push_back({1,I});
-  if(I>=Extra)for(int32 J=2;J<I;++J)if(FVector::Dist2D(Positions[I],Positions[J])<(I>=ApproachStart?1400:2250))Edges.push_back({I,J});
+  if(I>=ApproachStart&&FVector::Dist2D(Positions[0],Positions[I])<300)Edges.push_back({0,I});
+  if(UseApproaches?SpeakingNodes.Contains(I):(I>=ApproachStart&&FVector::Dist2D(Positions[1],Positions[I])<300))Edges.push_back({1,I});
+  if(I>=ApproachStart)
+  {
+   ConnectLocal(I,ApproachStart,1400);
+   for(int32 J=ApproachStart;J<I;++J)if(FVector::Dist2D(Positions[I],Positions[J])<300)Edges.push_back({I,J});
+  }
+  else if(I>=Extra)for(int32 J=2;J<I;++J)if(FVector::Dist2D(Positions[I],Positions[J])<2250)Edges.push_back({I,J});
  }
- if(!PersonGoal&&FVector::Dist2D(Here,Goal)<2200)Edges.push_back({0,1});
+ if(!UseApproaches&&FVector::Dist2D(Here,Goal)<2200)Edges.push_back({0,1});
  int32 Queries=0;bool Exhausted=false;TMap<uint64,bool> Cache;
  auto Clear=[&](int32 I,int32 J)
  {
   const uint64 Key=(uint64(FMath::Min(I,J))<<32)|uint64(FMath::Max(I,J));if(const bool* Found=Cache.Find(Key))return *Found;
   if(!Grounded[I]||!Grounded[J])return false;
-  if(PersonGoal&&(I==1||J==1))return SpeakingNodes.Contains(I==1?J:I);
-  if(Queries>=320){Exhausted=true;return false;}NavigationQueries=++Queries;
+  if(UseApproaches&&(I==1||J==1))return SpeakingNodes.Contains(I==1?J:I);
   const FVector A=Positions[I],B=Positions[J];
   // No vertical shortcut between overlapping floors, and no route drawn over
   // a cliff or a handrail just because its endpoints have valid floors.
   const float Run=FVector::Dist2D(A,B),Rise=FMath::Abs(A.Z-B.Z);
   if(Rise>FMath::Max(20.f,Run*.75f)){Cache.Add(Key,false);return false;}
+  if(Queries>=320){Exhausted=true;return false;}NavigationQueries=++Queries;
   bool OK=BodyClear(A,B);
   const int32 Samples=FMath::Max(1,FMath::CeilToInt(Run/(Rise>10.f?20.f:110.f)));
   for(int32 K=1;OK&&K<Samples;++K)
   {FVector G;const FVector P=FMath::Lerp(A,B,float(K)/Samples);OK=Ground(P,P.Z-Half,G)&&FMath::Abs(G.Z-P.Z)<40.f;}
   Cache.Add(Key,OK);return OK;
  };
- const auto Path=StationNavigation::Path(Nodes,Edges,Clear);
+ auto Path=StationNavigation::Path(Nodes,Edges,Clear);
+ if(Path.size()<2&&!Exhausted)
+ {
+  for(int32 I=2;I<Extra;++I)for(int32 J=2;J<I;++J)
+   if(Grounded[I]&&Grounded[J]&&FVector::DistSquared2D(Positions[I],Positions[J])<=1250.f*1250.f)
+    Edges.push_back({I,J});
+  Path=StationNavigation::Path(Nodes,Edges,Clear);
+ }
  // A budget exhausted on a rejected branch does not invalidate another route
  // whose every edge was already swept and cached as clear.
- if(Path.size()>1){for(int32 I:Path)if(!PersonGoal||I!=1)NavigationRoute.Add(Positions[I]-FVector(0,0,Half-5));NavigationVerified=NavigationRoute.Num()>1;}
+ if(Path.size()>1){for(int32 I:Path)if(!UseApproaches||I!=1)NavigationRoute.Add(Positions[I]-FVector(0,0,Half-5));NavigationVerified=NavigationRoute.Num()>1;}
  else NavigationFailure=Exhausted?TEXT("query_budget_exhausted"):TEXT("no_clear_circulation_route");
 }
 
