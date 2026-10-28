@@ -14,6 +14,8 @@
 #include "NavigationPath.h"
 #include "ImageUtils.h"
 #include "Misc/Paths.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Kismet/GameplayStatics.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
@@ -148,20 +150,26 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  NavigationUpdated=Now;NavigationTarget=Guide;NavigationGoal=Target;NavigationStart=Here;NavigationRoute.Empty();NavigationVerified=false;NavigationFailure.Empty();NavigationQueries=0;
  FVector Goal=Target;
  if(auto* Object=Cast<AStationObject>(Guide))Goal+=Object->GetActorRightVector()*72.f;
- else Goal+=(Here-Target).GetSafeNormal2D()*145.f;
+ const bool PersonGoal=Cast<AStationEngineer>(Guide)!=nullptr;
  auto* Character=Cast<ACharacter>(Pawn);const float Half=Character?Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight():88.f;
  const float Radius=Character?FMath::Max(30.f,Character->GetCapsuleComponent()->GetScaledCapsuleRadius()):34.f;
  const auto Shape=FCollisionShape::MakeCapsule(Radius,FMath::Max(Radius,Half-18.f));
  FCollisionQueryParams Q(SCENE_QUERY_STAT(StoryNavigation),false,Pawn);Q.AddIgnoredActor(Guide);Q.AddIgnoredActor(D);
  FCollisionQueryParams MovementQ(SCENE_QUERY_STAT(StoryNavigationBody),false,Pawn);MovementQ.AddIgnoredActor(D);
+ const bool TraceDebug=FParse::Param(FCommandLine::Get(),TEXT("DaylightNavigationDebug"));
+ auto LogBlock=[&](const TCHAR* Part,const FVector& A,const FVector& B,const FHitResult& Hit)
+ {
+  if(TraceDebug)UE_LOG(LogTemp,Display,TEXT("NAV30_BLOCK part=%s from=%s to=%s actor=%s component=%s impact=%s normal=%s penetration=%d"),Part,*A.ToString(),*B.ToString(),*GetNameSafe(Hit.GetActor()),*GetNameSafe(Hit.GetComponent()),*Hit.ImpactPoint.ToString(),*Hit.ImpactNormal.ToString(),Hit.bStartPenetrating?1:0);
+ };
  auto BodyClear=[&](FVector A,FVector B)
  {
   FHitResult Hit;
   // The shorter lower sweep permits normal step-up. Restore the real capsule's
   // head clearance separately so a low lintel cannot produce a false route.
-  if(GetWorld()->SweepSingleByChannel(Hit,A+FVector(0,0,5),B+FVector(0,0,5),FQuat::Identity,ECC_Pawn,Shape,MovementQ))return false;
+  if(GetWorld()->SweepSingleByChannel(Hit,A+FVector(0,0,5),B+FVector(0,0,5),FQuat::Identity,ECC_Pawn,Shape,MovementQ)){LogBlock(TEXT("body"),A,B,Hit);return false;}
   const FVector Head(0,0,Half-Radius+5);
-  return !GetWorld()->SweepSingleByChannel(Hit,A+Head,B+Head,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeSphere(Radius),MovementQ);
+  if(GetWorld()->SweepSingleByChannel(Hit,A+Head,B+Head,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeSphere(Radius),MovementQ)){LogBlock(TEXT("head"),A,B,Hit);return false;}
+  return true;
  };
  // Prefer the engine's walkable navigation data when the level provides it.
  if(auto* Nav=FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
@@ -184,12 +192,20 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  auto Ground=[&](FVector P,float ExpectedFeet,FVector& Result)
  {
   FHitResult Hit;
-  if(!GetWorld()->LineTraceSingleByChannel(Hit,FVector(P.X,P.Y,ExpectedFeet+65),FVector(P.X,P.Y,ExpectedFeet-70),ECC_WorldStatic,Q)||Hit.ImpactNormal.Z<.7f)return false;
+  if(!GetWorld()->LineTraceSingleByChannel(Hit,FVector(P.X,P.Y,ExpectedFeet+65),FVector(P.X,P.Y,ExpectedFeet-70),ECC_WorldStatic,Q)||Hit.ImpactNormal.Z<.7f)
+  {if(TraceDebug)UE_LOG(LogTemp,Display,TEXT("NAV30_FLOOR_FAIL at=%s expected=%f actor=%s normal=%s"),*P.ToString(),ExpectedFeet,*GetNameSafe(Hit.GetActor()),*Hit.ImpactNormal.ToString());return false;}
   Result=Hit.ImpactPoint+FVector(0,0,Half);return true;
  };
  float GoalFloor=Target.Z;
  if(const auto* Person=Cast<ACharacter>(Guide))GoalFloor-=Person->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
- FVector GroundGoal;if(!Ground(Goal,GoalFloor,GroundGoal)){NavigationFailure=TEXT("goal_floor_unavailable");return;}
+ FVector GroundGoal;
+ // Equipment can be mounted on a counter: its actor origin is not necessarily
+ // the walking floor. Probe the adjacent lower window for props only, while
+ // keeping authored floor nodes and character feet on their precise windows.
+ const bool GoalSupported=Ground(Goal,GoalFloor,GroundGoal)||
+  (Cast<AStationObject>(Guide)&&Ground(Goal,GoalFloor-65.f,GroundGoal));
+ if(!GoalSupported){NavigationFailure=TEXT("goal_floor_unavailable");return;}
+ if(TraceDebug)UE_LOG(LogTemp,Display,TEXT("NAV30_QUERY target=%s from=%s goal=%s goal_floor=%f half=%f radius=%f"),*GetNameSafe(Guide),*Here.ToString(),*GroundGoal.ToString(),GoalFloor,Half,Radius);
  TArray<FVector> Positions={Here,GroundGoal};TArray<bool> Grounded={true,true};
  for(const auto& P:Neighborhood16::RouteNodes){FVector G;const bool OK=Ground(P,P.Z,G);Positions.Add(OK?G:P+FVector(0,0,Half));Grounded.Add(OK);}
  // Transit spines are shared with the existing NPC routines, not drawn through buildings.
@@ -209,6 +225,25 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
   const float Angle=I*PI/4;const FVector P=Center+FVector(FMath::Cos(Angle)*185,FMath::Sin(Angle)*185,0);
   FVector G;const bool OK=Ground(P,Center.Z-Half,G);Positions.Add(OK?G:P);Grounded.Add(OK);
  }
+ // A person can stand beside a wall or table. Choose among reachable speaking
+ // positions rather than insisting on the side nearest the player. Node 1 is
+ // a virtual sink only: its final link is never displayed or walked through
+ // the NPC's physical capsule.
+ TSet<int32> SpeakingNodes;
+ if(PersonGoal)
+ {
+  const float Bearing=FMath::Atan2(Here.Y-Target.Y,Here.X-Target.X);
+  for(int32 I=0;I<8;++I)
+  {
+   const float Angle=Bearing+I*PI/4;
+   const FVector P=Target+FVector(FMath::Cos(Angle)*130,FMath::Sin(Angle)*130,0);
+   FVector G;if(!Ground(P,GoalFloor,G)||!BodyClear(G,G))continue;
+   FHitResult Hit;const FVector Eye=G+FVector(0,0,45);
+   if(GetWorld()->LineTraceSingleByChannel(Hit,Eye,Cast<AStationEngineer>(Guide)->GetInteractionPoint(),ECC_Visibility,Q))continue;
+   SpeakingNodes.Add(Positions.Num());Positions.Add(G);Grounded.Add(true);
+  }
+  if(SpeakingNodes.IsEmpty()){NavigationFailure=TEXT("no_clear_speaking_position");return;}
+ }
  std::vector<StationNavigation::Point> Nodes;for(const FVector& P:Positions)Nodes.push_back(XY(P));
  std::vector<StationNavigation::EdgeLink> Edges;
  for(const auto& E:Neighborhood16::RouteEdges)Edges.push_back({E.X+2,E.Y+2});
@@ -221,15 +256,16 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  for(int32 I=2;I<Positions.Num();++I)
  {
   if(FVector::Dist2D(Positions[0],Positions[I])<1400)Edges.push_back({0,I});
-  if(FVector::Dist2D(Positions[1],Positions[I])<1400)Edges.push_back({1,I});
+  if(PersonGoal?SpeakingNodes.Contains(I):FVector::Dist2D(Positions[1],Positions[I])<1400)Edges.push_back({1,I});
   if(I>=Extra)for(int32 J=2;J<I;++J)if(FVector::Dist2D(Positions[I],Positions[J])<(I>=ApproachStart?1400:2250))Edges.push_back({I,J});
  }
- if(FVector::Dist2D(Here,Goal)<2200)Edges.push_back({0,1});
+ if(!PersonGoal&&FVector::Dist2D(Here,Goal)<2200)Edges.push_back({0,1});
  int32 Queries=0;bool Exhausted=false;TMap<uint64,bool> Cache;
  auto Clear=[&](int32 I,int32 J)
  {
   const uint64 Key=(uint64(FMath::Min(I,J))<<32)|uint64(FMath::Max(I,J));if(const bool* Found=Cache.Find(Key))return *Found;
   if(!Grounded[I]||!Grounded[J])return false;
+  if(PersonGoal&&(I==1||J==1))return SpeakingNodes.Contains(I==1?J:I);
   if(Queries>=320){Exhausted=true;return false;}NavigationQueries=++Queries;
   const FVector A=Positions[I],B=Positions[J];
   // No vertical shortcut between overlapping floors, and no route drawn over
@@ -245,7 +281,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  const auto Path=StationNavigation::Path(Nodes,Edges,Clear);
  // A budget exhausted on a rejected branch does not invalidate another route
  // whose every edge was already swept and cached as clear.
- if(Path.size()>1){for(int32 I:Path)NavigationRoute.Add(Positions[I]-FVector(0,0,Half-5));NavigationVerified=true;}
+ if(Path.size()>1){for(int32 I:Path)if(!PersonGoal||I!=1)NavigationRoute.Add(Positions[I]-FVector(0,0,Half-5));NavigationVerified=NavigationRoute.Num()>1;}
  else NavigationFailure=Exhausted?TEXT("query_budget_exhausted"):TEXT("no_clear_circulation_route");
 }
 

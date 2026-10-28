@@ -18,6 +18,9 @@ public class DaylightRightsTarget : TargetRules
             // or installed engine source are changed by this game target.
             bOverrideBuildEnvironment = true;
             bDeterministic = true;
+            // Keep only the symbol filename in the PE debug directory. An explicit
+            // alternate path also applies to Development game executables.
+            WindowsPlatform.PdbAlternatePath = "%_PDB%";
             AdditionalCompilerArguments = (AdditionalCompilerArguments ?? "") +
                 " /pathmap:\"" + ProjectFile.Directory.FullName + "=DaylightRights\"";
         }
