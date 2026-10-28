@@ -407,7 +407,7 @@ void AStationDirector::Tick(float Delta)
                 TEXT("/Game/BZ/Audio/MU14_Title.MU14_Title"),
                 TEXT("/Game/BZ/Frontend/T_DaylightCover.T_DaylightCover")})
                 Record(Asset,IsValid(LoadObject<UObject>(nullptr,Asset)));
-            for(const TCHAR* File:{TEXT("BZ/StoryV27/campaign.json"),TEXT("BZ/NavigationV19/Portraits/T_N19_LinZhao.png"),TEXT("BZ/NavigationV19/Portraits/T_N19_LuoShen.png"),TEXT("Movies/BZ_WhiteDay.mp4")})
+            for(const TCHAR* File:{TEXT("BZ/StoryV27/campaign.json"),TEXT("BZ/RuntimeImages/Portraits/T_N19_LinZhao.png"),TEXT("BZ/RuntimeImages/Portraits/T_N19_LuoShen.png"),TEXT("Movies/BZ_WhiteDay.mp4")})
                 Record(File,FPaths::FileExists(FPaths::ProjectContentDir()/File));
             Record(TEXT("Authored story entry and free-roam ending loaded"),ArcNodes.Contains(TEXT("queue"))&&ArcNodes.Contains(TEXT("free")));
             Record(TEXT("Playable pawn and native input binding"),PC->GetPawn()&&BoundInput);

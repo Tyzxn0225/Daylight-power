@@ -107,12 +107,12 @@ FString AStationDirector::GetNavigationPlace(AActor* Target) const
 
 void AStationHUD::LoadNavigationPortraits()
 {
- const FString MapFile=FPaths::Combine(FPaths::ProjectContentDir(),TEXT("BZ/NavigationV19/Maps/CommunityMap.png"));
+ const FString MapFile=FPaths::Combine(FPaths::ProjectContentDir(),TEXT("BZ/RuntimeImages/Maps/CommunityMap.png"));
  NavigationBasemap=FPaths::FileExists(MapFile)?FImageUtils::ImportFileAsTexture2D(MapFile):nullptr;
  const TCHAR* Roles[]={TEXT("LinZhao"),TEXT("YeCen"),TEXT("LinHe"),TEXT("ZhouChi"),TEXT("ShenYan"),TEXT("LuoShen"),TEXT("AZhan")};
  for(const auto* PortraitRole:Roles)
  {
-  const FString File=FPaths::Combine(FPaths::ProjectContentDir(),TEXT("BZ/NavigationV19/Portraits"),FString::Printf(TEXT("T_N19_%s.png"),PortraitRole));
+  const FString File=FPaths::Combine(FPaths::ProjectContentDir(),TEXT("BZ/RuntimeImages/Portraits"),FString::Printf(TEXT("T_N19_%s.png"),PortraitRole));
   UTexture2D* Texture=FPaths::FileExists(File)?FImageUtils::ImportFileAsTexture2D(File):nullptr;
   if(!Texture)Texture=LoadObject<UTexture2D>(nullptr,*FString::Printf(TEXT("/Game/BZ/NavigationV19/T_N19_%s.T_N19_%s"),PortraitRole,PortraitRole));
   NavigationPortraits.Add(Texture);

@@ -29,7 +29,7 @@ UTexture2D* AStationHUD::GetAchievementPhoto(AStationDirector* D,int32 Index)
  const FString Key=D->GetAchievementPhotoKey(Index);if(Key.IsEmpty())return nullptr;
  if(const auto* Found=AchievementPhotos.Find(Key))return Found->Get();
  if(MissingAchievementPhotos.Contains(Key))return nullptr;
- const FString File=FPaths::Combine(FPaths::ProjectContentDir(),TEXT("BZ/StoryAchievementsV20/Photos"),TEXT("A20_")+Key+TEXT(".png"));
+ const FString File=FPaths::Combine(FPaths::ProjectContentDir(),TEXT("BZ/RuntimeImages/Achievements"),TEXT("A20_")+Key+TEXT(".png"));
  UTexture2D* Texture=FPaths::FileExists(File)?FImageUtils::ImportFileAsTexture2D(File):nullptr;
  if(!Texture){MissingAchievementPhotos.Add(Key);return nullptr;}
  // Only the current photograph and a few recently viewed pages stay resident.
