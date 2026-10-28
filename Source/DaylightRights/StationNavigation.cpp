@@ -10,6 +10,7 @@
 #include "CanvasItem.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
 #include "ImageUtils.h"
@@ -176,6 +177,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  const bool UseApproaches=PersonGoal||ReadableGoal;
  auto* Character=Cast<ACharacter>(Pawn);const float Half=Character?Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight():88.f;
  const float Radius=Character?FMath::Max(30.f,Character->GetCapsuleComponent()->GetScaledCapsuleRadius()):34.f;
+ const float StepHeight=Character?Character->GetCharacterMovement()->MaxStepHeight:45.f;
  const auto Shape=FCollisionShape::MakeCapsule(Radius,FMath::Max(Radius,Half-18.f));
  FCollisionQueryParams Q(SCENE_QUERY_STAT(StoryNavigation),false,Pawn);Q.AddIgnoredActor(Guide);Q.AddIgnoredActor(D);
  FCollisionQueryParams MovementQ(SCENE_QUERY_STAT(StoryNavigationBody),false,Pawn);MovementQ.AddIgnoredActor(D);
@@ -224,7 +226,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
   FHitResult Hit;
   const bool HitFloor=GetWorld()->LineTraceSingleByChannel(Hit,FVector(P.X,P.Y,ExpectedFeet+65),FVector(P.X,P.Y,ExpectedFeet-70),ECC_WorldStatic,Q);
   if(TransientHit(Hit))CacheableProbe=false;
-  if(!HitFloor||Hit.ImpactNormal.Z<.7f)
+  if(!HitFloor||Hit.ImpactNormal.Z<.7f||FMath::Abs(Hit.ImpactPoint.Z-ExpectedFeet)>StepHeight)
   {if(TraceDebug)UE_LOG(LogTemp,Display,TEXT("NAV30_FLOOR_FAIL at=%s expected=%f actor=%s normal=%s"),*P.ToString(),ExpectedFeet,*GetNameSafe(Hit.GetActor()),*Hit.ImpactNormal.ToString());return false;}
   Result=Hit.ImpactPoint+FVector(0,0,Half);return true;
  };
@@ -335,8 +337,9 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
   const float Run=FVector::Dist2D(A,B),Rise=FMath::Abs(A.Z-B.Z);
   bool OK=BodyClear(A,B);
   const int32 Samples=FMath::Max(1,FMath::CeilToInt(Run/(Rise>10.f?20.f:110.f)));
-  for(int32 K=1;OK&&K<Samples;++K)
-  {FVector G;const FVector P=FMath::Lerp(A,B,float(K)/Samples);OK=Ground(P,P.Z-Half,G)&&FMath::Abs(G.Z-P.Z)<40.f;}
+  FVector Previous=A;
+  for(int32 K=1;OK&&K<=Samples;++K)
+  {FVector G;const FVector P=FMath::Lerp(A,B,float(K)/Samples);OK=Ground(P,P.Z-Half,G)&&FMath::Abs(G.Z-P.Z)<40.f&&FMath::Abs(G.Z-Previous.Z)<=StepHeight;if(OK)Previous=G;}
   return OK;
  };
  auto Clear=[&](int32 I,int32 J)
