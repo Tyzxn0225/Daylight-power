@@ -83,6 +83,20 @@ TArray<FStationMapPin> AStationDirector::GetNavigationPins() const
  }
  return Pins;
 }
+bool AStationDirector::RequiresFrontalApproach(AStationObject* Object) const
+{
+ if(!IsValid(Object))return false;
+ if(Object->IsServiceRequest())return false;
+ switch(Object->Kind)
+ {
+  case EStationObjectKind::Notice:case EStationObjectKind::AllocationLedger:case EStationObjectKind::WorkAccount:
+  case EStationObjectKind::FieldRadio:case EStationObjectKind::UrbanRecord:case EStationObjectKind::Reflect:
+  case EStationObjectKind::HeatControl:case EStationObjectKind::SurveyCabinet:return false;
+  case EStationObjectKind::NeighborhoodMemory:
+   return ExplorationObjects.IsValidIndex(5)&&Object==ExplorationObjects[5]&&IsConflictChapter()&&Progress->ConflictStarted&&Progress->ConflictChoice<0&&!Progress->KitchenShortcutOpen;
+  default:return true;
+ }
+}
 FString AStationDirector::GetNavigationPlace(AActor* Target) const
 {
  if(!IsValid(Target))return TEXT("社区自由探索");
@@ -130,6 +144,7 @@ FString AStationHUD::GetNavigationStateJson(AActor* Target)
  Root->SetBoolField(TEXT("verified"),NavigationVerified);
  Root->SetStringField(TEXT("failure"),NavigationFailure);
  Root->SetNumberField(TEXT("queries"),NavigationQueries);
+ Root->SetNumberField(TEXT("cached_segments"),NavigationProbes.Num());
  Root->SetNumberField(TEXT("goal_x"),NavigationGoal.X);
  Root->SetNumberField(TEXT("goal_y"),NavigationGoal.Y);
  Root->SetNumberField(TEXT("goal_z"),NavigationGoal.Z);
@@ -147,14 +162,17 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  if(!IsValid(Guide)){NavigationRoute.Empty();NavigationTarget.Reset();NavigationVerified=false;return;}
  const FVector Here=Pawn->GetActorLocation(),Target=Guide->GetActorLocation();
  if(!StationNavigation::Replan(NavigationTarget.Get()==Guide,Now-NavigationUpdated,FVector::Dist2D(Here,NavigationStart),FVector::Dist2D(Target,NavigationGoal)))return;
+ const bool ShortcutOpen=D->Progress&&D->Progress->KitchenShortcutOpen;
+ if(NavigationTarget.Get()!=Guide||Now-NavigationProbeEpoch>15.f||ShortcutOpen!=NavigationShortcutOpen)
+ {NavigationProbes.Empty();NavigationProbeEpoch=Now;NavigationShortcutOpen=ShortcutOpen;}
  NavigationUpdated=Now;NavigationTarget=Guide;NavigationGoal=Target;NavigationStart=Here;NavigationRoute.Empty();NavigationVerified=false;NavigationFailure.Empty();NavigationQueries=0;
  FVector Goal=Target;
  if(auto* Object=Cast<AStationObject>(Guide))Goal+=Object->GetActorRightVector()*72.f;
  const bool PersonGoal=Cast<AStationEngineer>(Guide)!=nullptr;
- const auto* ObjectGoal=Cast<AStationObject>(Guide);
+ auto* ObjectGoal=Cast<AStationObject>(Guide);
  // Readable boards allow either visible side. Hands-on devices retain their
  // authored front position, shared with physical-action alignment.
- const bool ReadableGoal=ObjectGoal&&(ObjectGoal->IsServiceRequest()||ObjectGoal->Kind==EStationObjectKind::Notice||ObjectGoal->Kind==EStationObjectKind::AllocationLedger||ObjectGoal->Kind==EStationObjectKind::WorkAccount);
+ const bool ReadableGoal=ObjectGoal&&!D->RequiresFrontalApproach(ObjectGoal);
  const bool UseApproaches=PersonGoal||ReadableGoal;
  auto* Character=Cast<ACharacter>(Pawn);const float Half=Character?Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight():88.f;
  const float Radius=Character?FMath::Max(30.f,Character->GetCapsuleComponent()->GetScaledCapsuleRadius()):34.f;
@@ -166,14 +184,21 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  {
   if(TraceDebug)UE_LOG(LogTemp,Display,TEXT("NAV30_BLOCK part=%s from=%s to=%s actor=%s component=%s impact=%s normal=%s penetration=%d"),Part,*A.ToString(),*B.ToString(),*GetNameSafe(Hit.GetActor()),*GetNameSafe(Hit.GetComponent()),*Hit.ImpactPoint.ToString(),*Hit.ImpactNormal.ToString(),Hit.bStartPenetrating?1:0);
  };
+ bool CacheableProbe=true;
+ auto TransientHit=[&](const FHitResult& Hit)
+ {
+  return Cast<ACharacter>(Hit.GetActor())||Cast<AStationObject>(Hit.GetActor())||(IsValid(D->KitchenGate)&&Hit.GetActor()==D->KitchenGate)||
+   (Hit.GetComponent()&&Hit.GetComponent()->IsSimulatingPhysics());
+ };
  auto BodyClear=[&](FVector A,FVector B)
  {
+  CacheableProbe=true;
   FHitResult Hit;
   // The shorter lower sweep permits normal step-up. Restore the real capsule's
   // head clearance separately so a low lintel cannot produce a false route.
-  if(GetWorld()->SweepSingleByChannel(Hit,A+FVector(0,0,5),B+FVector(0,0,5),FQuat::Identity,ECC_Pawn,Shape,MovementQ)){LogBlock(TEXT("body"),A,B,Hit);return false;}
+  if(GetWorld()->SweepSingleByChannel(Hit,A+FVector(0,0,5),B+FVector(0,0,5),FQuat::Identity,ECC_Pawn,Shape,MovementQ)){CacheableProbe=!TransientHit(Hit);LogBlock(TEXT("body"),A,B,Hit);return false;}
   const FVector Head(0,0,Half-Radius+5);
-  if(GetWorld()->SweepSingleByChannel(Hit,A+Head,B+Head,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeSphere(Radius),MovementQ)){LogBlock(TEXT("head"),A,B,Hit);return false;}
+  if(GetWorld()->SweepSingleByChannel(Hit,A+Head,B+Head,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeSphere(Radius),MovementQ)){CacheableProbe=!TransientHit(Hit);LogBlock(TEXT("head"),A,B,Hit);return false;}
   return true;
  };
  // Prefer the engine's walkable navigation data when the level provides it.
@@ -197,7 +222,9 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  auto Ground=[&](FVector P,float ExpectedFeet,FVector& Result)
  {
   FHitResult Hit;
-  if(!GetWorld()->LineTraceSingleByChannel(Hit,FVector(P.X,P.Y,ExpectedFeet+65),FVector(P.X,P.Y,ExpectedFeet-70),ECC_WorldStatic,Q)||Hit.ImpactNormal.Z<.7f)
+  const bool HitFloor=GetWorld()->LineTraceSingleByChannel(Hit,FVector(P.X,P.Y,ExpectedFeet+65),FVector(P.X,P.Y,ExpectedFeet-70),ECC_WorldStatic,Q);
+  if(TransientHit(Hit))CacheableProbe=false;
+  if(!HitFloor||Hit.ImpactNormal.Z<.7f)
   {if(TraceDebug)UE_LOG(LogTemp,Display,TEXT("NAV30_FLOOR_FAIL at=%s expected=%f actor=%s normal=%s"),*P.ToString(),ExpectedFeet,*GetNameSafe(Hit.GetActor()),*Hit.ImpactNormal.ToString());return false;}
   Result=Hit.ImpactPoint+FVector(0,0,Half);return true;
  };
@@ -222,6 +249,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  // half landing, top landing, side bridge and terrace deck. These coordinates
  // follow the exported geometry; a route is still accepted only after sweeps.
  for(const FVector& P:StationCirculation30::TerraceNodes)AddFloorNode(P);
+ for(const FVector& P:StationCirculation30::InteriorDoorNodes)AddFloorNode(P);
  // Reader stands and people remain physical obstacles. Local approach nodes
  // allow a short route around their body instead of drawing through it.
  const int32 ApproachStart=Positions.Num();
@@ -297,6 +325,20 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  }
  if(!UseApproaches&&FVector::Dist2D(Here,Goal)<2200)Edges.push_back({0,1});
  int32 Queries=0;bool Exhausted=false;TMap<uint64,bool> Cache;
+ auto SegmentKey=[&](int32 I,int32 J)
+ {
+  auto PointKey=[](const FVector& P){return FString::Printf(TEXT("%d,%d,%d"),FMath::RoundToInt(P.X),FMath::RoundToInt(P.Y),FMath::RoundToInt(P.Z));};
+  FString A=PointKey(Positions[I]),B=PointKey(Positions[J]);return A<B?A+TEXT("|")+B:B+TEXT("|")+A;
+ };
+ auto ProbeSegment=[&](FVector A,FVector B)
+ {
+  const float Run=FVector::Dist2D(A,B),Rise=FMath::Abs(A.Z-B.Z);
+  bool OK=BodyClear(A,B);
+  const int32 Samples=FMath::Max(1,FMath::CeilToInt(Run/(Rise>10.f?20.f:110.f)));
+  for(int32 K=1;OK&&K<Samples;++K)
+  {FVector G;const FVector P=FMath::Lerp(A,B,float(K)/Samples);OK=Ground(P,P.Z-Half,G)&&FMath::Abs(G.Z-P.Z)<40.f;}
+  return OK;
+ };
  auto Clear=[&](int32 I,int32 J)
  {
   const uint64 Key=(uint64(FMath::Min(I,J))<<32)|uint64(FMath::Max(I,J));if(const bool* Found=Cache.Find(Key))return *Found;
@@ -307,11 +349,14 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
   // a cliff or a handrail just because its endpoints have valid floors.
   const float Run=FVector::Dist2D(A,B),Rise=FMath::Abs(A.Z-B.Z);
   if(Rise>FMath::Max(20.f,Run*.75f)){Cache.Add(Key,false);return false;}
+  const FString Segment=SegmentKey(I,J);
+  if(const bool* Previous=NavigationProbes.Find(Segment)){Cache.Add(Key,*Previous);return *Previous;}
   if(Queries>=320){Exhausted=true;return false;}NavigationQueries=++Queries;
-  bool OK=BodyClear(A,B);
-  const int32 Samples=FMath::Max(1,FMath::CeilToInt(Run/(Rise>10.f?20.f:110.f)));
-  for(int32 K=1;OK&&K<Samples;++K)
-  {FVector G;const FVector P=FMath::Lerp(A,B,float(K)/Samples);OK=Ground(P,P.Z-Half,G)&&FMath::Abs(G.Z-P.Z)<40.f;}
+  const bool OK=ProbeSegment(A,B);
+  // Continue static geometry work across replans instead of repeatedly
+  // exhausting the same per-update budget. Moving blockers are never cached
+  // as closed. Successful candidates are checked fresh before being shown.
+  if(OK||CacheableProbe)NavigationProbes.Add(Segment,OK);
   Cache.Add(Key,OK);return OK;
  };
  auto Path=StationNavigation::Path(Nodes,Edges,Clear);
@@ -324,7 +369,18 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  }
  // A budget exhausted on a rejected branch does not invalidate another route
  // whose every edge was already swept and cached as clear.
- if(Path.size()>1){for(int32 I:Path)if(!UseApproaches||I!=1)NavigationRoute.Add(Positions[I]-FVector(0,0,Half-5));NavigationVerified=NavigationRoute.Num()>1;}
+ if(Path.size()>1)
+ {
+  if(Queries+int32(Path.size())>320){NavigationFailure=TEXT("route_confirmation_pending");return;}
+  for(size_t K=1;K<Path.size();++K)
+  {
+   const int32 I=Path[K-1],J=Path[K];if(UseApproaches&&(I==1||J==1))continue;
+   NavigationQueries=++Queries;
+   if(!ProbeSegment(Positions[I],Positions[J]))
+   {const FString Segment=SegmentKey(I,J);if(CacheableProbe)NavigationProbes.Add(Segment,false);else NavigationProbes.Remove(Segment);NavigationFailure=TEXT("route_changed");return;}
+  }
+  for(int32 I:Path)if(!UseApproaches||I!=1)NavigationRoute.Add(Positions[I]-FVector(0,0,Half-5));NavigationVerified=NavigationRoute.Num()>1;
+ }
  else NavigationFailure=Exhausted?TEXT("query_budget_exhausted"):TEXT("no_clear_circulation_route");
 }
 

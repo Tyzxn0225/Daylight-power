@@ -1,6 +1,25 @@
 #pragma once
 namespace StationCirculation30
 {
+// Existing V16 door centres and approaches in world centimetres. Every
+// connection must still pass body, head-clearance and floor checks.
+static const FVector InteriorDoorNodes[]={
+ // Workshop.
+ FVector(-3800,3546,0),FVector(-3800,3416,19),FVector(-3800,3286,19),
+ FVector(-3800,2444,0),FVector(-3800,2574,19),FVector(-3800,2704,19),
+ // Kitchen and home.
+ FVector(-4750,2268,0),FVector(-4750,2138,19),FVector(-4750,2008,19),
+ FVector(-4750,1169,0),FVector(-4750,1299,19),FVector(-4750,1429,19),
+ FVector(-3800,2362,0),FVector(-3800,2232,19),FVector(-3800,2102,19),
+ // Clinic.
+ FVector(-5720,-163,0),FVector(-5720,-293,19),FVector(-5720,-423,19),
+ FVector(-5720,-1254,0),FVector(-5720,-1124,19),FVector(-5720,-994,19),
+ // Cinema west/east doors and side aisles.
+ FVector(-4319,-3160,0),FVector(-4189,-3160,19),FVector(-4059,-3160,19),
+ FVector(-3270,-3160,0),FVector(-3400,-3160,19),FVector(-3530,-3160,19),
+ FVector(-4080,-3460,19),FVector(-4080,-2900,19),
+ FVector(-3520,-3460,19),FVector(-3520,-2900,19)
+};
 // Floor heights in centimetres. Existing stair and bridge, not new geometry.
 static const FVector TerraceNodes[]={
  FVector(-3005,-2680,0),

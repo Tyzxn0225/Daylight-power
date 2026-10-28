@@ -290,6 +290,7 @@ public:
     UFUNCTION(BlueprintCallable,Category="Station",meta=(DevelopmentOnly)) void AutomationOccluder(bool Enabled);
     UPROPERTY(BlueprintReadOnly,Category="Station") TObjectPtr<AActor> Focus;
     UPROPERTY(BlueprintReadOnly,Category="Station") TObjectPtr<UStationProgress> Progress;
+    UFUNCTION(BlueprintPure,Category="Station") bool RequiresFrontalApproach(AStationObject* Object) const;
     UPROPERTY(BlueprintReadOnly,Category="Station") EStationPanel Panel=EStationPanel::None;
     UPROPERTY(BlueprintReadOnly,Category="Station") int32 Selection=0;
     UPROPERTY(BlueprintReadOnly,Category="Station") bool Starting=false;
@@ -845,6 +846,9 @@ private:
     bool NavigationVerified=false;
     FString NavigationFailure;
     int32 NavigationQueries=0;
+    TMap<FString,bool> NavigationProbes;
+    float NavigationProbeEpoch=-100.f;
+    bool NavigationShortcutOpen=false;
     float Unit=1;
 };
 
