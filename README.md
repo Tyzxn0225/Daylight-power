@@ -2,9 +2,11 @@
 
 基于 Unreal Engine 5.8 的建筑叙事游戏原型：当人工光照、供热和地址资格被捆绑出售，一个检修工怎样在家庭、邻里与制度之间作出选择？
 
+[下载 v0.1.1 完整 Windows 游戏与展示册](https://github.com/Tyzxn0225/Daylight-power/releases/tag/v0.1.1)。完整解压游戏 ZIP，双击 `Windows/DaylightRights.exe`，无需安装 UE 编辑器。
+
 本仓库是公开的**源码与设计作品集**。它包含项目自有 C++ 代码、配置、剧情数据和探索设计预览。原始人物、动画、声音、UE 二进制资源、存档和本机制作记录不在公开范围；**克隆本仓库不会直接得到完整可玩的工程**。
 
-![v0.1.0 独立包主页实机截图](Docs/Gallery/title-v0.1.0.png)
+![v0.1.1 主页实机截图](Docs/Gallery/title-v0.1.1.png)
 
 上图为独立程序的主页截图；封面是叙事美术，不能代表可游玩场景的画质。
 
@@ -25,7 +27,7 @@
 | `Config` | 可移植的项目配置 |
 | `Content/BZ/StoryV27/campaign.json` | 自有主线剧情数据 |
 | `Docs/Exploration/index.html` | 可操作的调查机制与地图设计预览 |
-| `Docs/Releases/v0.1.0.md` | 发布说明与验证边界 |
+| `Docs/Releases/v0.1.1.md` | 完整游戏发布说明与验证边界 |
 | `Tools/Build.ps1` | 通过参数指定引擎的本地编译入口 |
 | `Tools/audit_public.py` | 暂存内容的隐私与产物检查 |
 
@@ -43,7 +45,11 @@
 
 ## 版本状态
 
-`v0.1.0` 定位为早期公开原型，适合展示建筑叙事、机制设计和源码实现。它不是对商业完成度、人物动画品质或全地图无缺陷的承诺。详细验证结果见 [验证记录](Docs/VALIDATION.md) 与 [发布说明](Docs/Releases/v0.1.0.md)。
+`v0.1.1` 为建筑毕业设计游戏初版，附完整可玩包。已完成从新游戏至片尾的连续步行路线、15 处调查路线与独立程序启动检查；人物表演、足部贴地和部分交互提示仍有原型局限。详细范围见 [验证记录](Docs/VALIDATION.md) 与 [发布说明](Docs/Releases/v0.1.1.md)。
+
+![双社区与人工供光设施，实际 UE 画面](Docs/Gallery/community-v0.1.1.png)
+
+![人物关系对白，实际 UE 画面](Docs/Gallery/dialogue-v0.1.1.png)
 
 ## 许可
 
