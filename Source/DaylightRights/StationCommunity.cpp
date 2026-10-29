@@ -358,11 +358,19 @@ void AStationDirector::UpdateWorkYield()
     int32 I=0;
     TArray<AStationEngineer*> Workers={Engineer.Get(),LinHe.Get(),ZhouChi.Get()};
     if(IsArcChapter())for(AStationEngineer* Person:ArcPeople)Workers.Add(Person);
+    const auto* Player=PC?Cast<ACharacter>(PC->GetPawn()):nullptr;
+    if(!Player)return;
     for(AStationEngineer* Person:Workers)
     {
         const float Offsets[]={-220,180,340};
         FVector Bay(NeighborhoodReady||PendingStandPoint.Y>6000?PendingStandPoint.X+Offsets[I%3]:FMath::Clamp(PendingStandPoint.X+Offsets[I%3],-2660.,1560.),NeighborhoodReady||PendingStandPoint.Y>6000?PendingStandPoint.Y+190.f:I==2?4180:4290,PendingStandPoint.Z);++I;
-        if(!IsValid(Person)||Person->ConversationPaused||WorkYieldPeople.Contains(Person)||FVector::Dist2D(Person->GetActorLocation(),PendingStandPoint)>180)continue;
+        if(!IsValid(Person)||Person->ConversationPaused||WorkYieldPeople.Contains(Person))continue;
+        // Nearby collaborators can remain beside the device. Only ask a person
+        // to move if their real capsule obstructs the player's alignment path.
+        const FVector Nearest=FMath::ClosestPointOnSegment(Person->GetActorLocation(),Player->GetActorLocation(),PendingStandPoint);
+        const float Clearance=Player->GetCapsuleComponent()->GetScaledCapsuleRadius()+Person->GetCapsuleComponent()->GetScaledCapsuleRadius()+12.f;
+        const float Vertical=Player->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()+Person->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+        if(FVector::Dist2D(Person->GetActorLocation(),Nearest)>Clearance||FMath::Abs(Person->GetActorLocation().Z-Nearest.Z)>Vertical)continue;
         if(NeighborhoodReady&&PendingStandPoint.Y<6000)
         {
             bool Found=false;
