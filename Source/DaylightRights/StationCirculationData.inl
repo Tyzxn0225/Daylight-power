@@ -1,6 +1,13 @@
 #pragma once
 namespace StationCirculation30
 {
+// Existing visitor-gallery circulation around the display furniture. Taken
+// from the original placement survey; still checked against runtime collision.
+static const FVector VisitorGalleryNodes[]={
+ FVector(4500,3960,0),FVector(4520,3670,0),FVector(4740,3440,15),
+ FVector(5100,3080,15),FVector(5420,2800,11),FVector(5420,2400,11),
+ FVector(4340,3520,15),FVector(3780,2840,15)
+};
 // Existing west promenade between the inspection well and worker housing,
 // and the southern pedestrian link to the trading hall. No new geometry.
 static const FVector DistrictWalkNodes[]={
@@ -55,7 +62,8 @@ static const FVector TerraceNodes[]={
  FVector(-2875,-2950,225),FVector(-2875,-2920,240),
  FVector(-2875,-2890,255),FVector(-2875,-2860,270),
  FVector(-2875,-2830,285),FVector(-2875,-2800,300),
- FVector(-2875,-2750,300),FVector(-2680,-2750,300),
+ // Repaired turning platform: the northern edge is widened by 600 mm.
+ FVector(-2875,-2720,300),FVector(-2680,-2720,300),
  FVector(-2680,-2940,300),FVector(-2680,-3180,300),
  FVector(-2680,-3360,300)
 };

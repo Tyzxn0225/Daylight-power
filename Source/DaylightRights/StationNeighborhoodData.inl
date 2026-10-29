@@ -39,7 +39,7 @@ static const FMesh Meshes[]={
 {TEXT("SM_N16_0256"),TEXT("SM_BZ_0256"),true},
 {TEXT("SM_N16_0283"),TEXT("SM_BZ_0283"),true},
 {TEXT("SM_N16_0287"),TEXT("SM_BZ_0287"),true},
-{TEXT("SM_N16_Props_BZ_metal_dark"),TEXT(""),true},
+{TEXT("SM_N30_TerraceMetal"),TEXT(""),true},
 {TEXT("SM_N16_Props_BZ_rust"),TEXT(""),true},
 {TEXT("SM_N16_Props_BZ_concrete"),TEXT(""),true},
 {TEXT("SM_N16_Props_BZ_wood"),TEXT(""),true},
@@ -128,7 +128,7 @@ static const FMesh Meshes[]={
 {TEXT("SM_N16_Foliage_0510"),TEXT("SM_BZ_0510"),false},
 {TEXT("SM_N16_Foliage_0511"),TEXT("SM_BZ_0511"),false},
 {TEXT("SM_N16_Foliage_0512"),TEXT("SM_BZ_0512"),false},
-{TEXT("SM_N16_ConstructionDetails"),TEXT(""),true},
+{TEXT("SM_N30_ConstructionDetails"),TEXT(""),true},
 };
 struct FMemory{const TCHAR* Name;FVector Position;const TCHAR* Title;const TCHAR* Body;const TCHAR* Voice;const TCHAR* Thought;};
 static const FMemory Memories[]={

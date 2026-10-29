@@ -271,6 +271,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  for(const FVector& P:StationCirculation30::InteriorDoorNodes)AddFloorNode(P);
  for(const FVector& P:StationCirculation30::DistrictWalkNodes)AddFloorNode(P);
  for(const FVector& P:StationCirculation30::DistrictRampNodes)AddFloorNode(P);
+ for(const FVector& P:StationCirculation30::VisitorGalleryNodes)AddFloorNode(P);
  // Reader stands and people remain physical obstacles. Local approach nodes
  // allow a short route around their body instead of drawing through it.
  const int32 ApproachStart=Positions.Num();
@@ -298,9 +299,12 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
   }
   const FVector Center(Interaction.X,Interaction.Y,Target.Z);
   const float Bearing=FMath::Atan2(Here.Y-Center.Y,Here.X-Center.X);
-  for(int32 I=0;I<8;++I)
+  const int32 StandCount=PersonGoal?8:16;
+  for(int32 I=0;I<StandCount;++I)
   {
-   const float Angle=Bearing+I*PI/4;
+   // Fixed reader candidates keep a narrow usable side available from every
+   // starting direction and let static segment checks persist across replans.
+   const float Angle=(PersonGoal?Bearing:0.f)+I*2*PI/StandCount;
    const float StandOff=PersonGoal?130.f:90.f;
    const FVector P=Center+FVector(FMath::Cos(Angle)*StandOff,FMath::Sin(Angle)*StandOff,0);
    FVector G;
