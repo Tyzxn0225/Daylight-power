@@ -406,9 +406,12 @@ void AStationDirector::TickCommunity(float Delta)
         WasSupplyCommunity=false;
     }
     if(!IsConflictChapter()||!ZhouChi||WorkYieldPeople.Contains(ZhouChi))return;
+    // The broker waits beside the crate, leaving its authored player
+    // operating position clear for inspection and the later pickup.
+    const FVector CaseWaitPoint=NeighborhoodReady?Neighborhood16::Stand(TEXT("ConsignmentCase"),FVector(350,4080,0))+FVector(180,0,0):FVector(500,4080,0);
     if(Progress->ConflictWitness<3)
     {
-        const FVector Stops[]={ConflictTraces.Num()==3?ConflictTraces[0]->GetActorLocation()+FVector(110,110,88):FVector(-250,4080,0),ConflictTraces.Num()==3?ConflictTraces[1]->GetActorLocation()+FVector(110,110,88):FVector(-1280,4080,0),NeighborhoodReady?Neighborhood16::Stand(TEXT("ConsignmentCase"),FVector(350,4080,0)):FVector(350,4080,0)};
+        const FVector Stops[]={ConflictTraces.Num()==3?ConflictTraces[0]->GetActorLocation()+FVector(110,110,88):FVector(-250,4080,0),ConflictTraces.Num()==3?ConflictTraces[1]->GetActorLocation()+FVector(110,110,88):FVector(-1280,4080,0),CaseWaitPoint};
         static const TCHAR* Purposes[]={TEXT("退回前核对厨房领料"),TEXT("退回前核对垫款账册"),TEXT("交接封存稳压器 · 等待见证")};
         int32 I=0;while(I<2&&(Progress->ConflictTraceMask&(1<<I)))++I;
         ZhouChi->SetCommunityTask(Stops[I],Purposes[I]);
@@ -416,6 +419,6 @@ void AStationDirector::TickCommunity(float Delta)
         // by examining physical clues, independently of the guide's arrival.
         WitnessSeconds=0;
     }
-    else if(!Progress->ConflictComplete)ZhouChi->SetCommunityTask(NeighborhoodReady?Neighborhood16::Stand(TEXT("ConsignmentCase"),FVector(500,4080,0)):FVector(500,4080,0),TEXT("等待稳压器处置与退件签收"));
+    else if(!Progress->ConflictComplete)ZhouChi->SetCommunityTask(CaseWaitPoint,TEXT("等待稳压器处置与退件签收"));
     else ZhouChi->ClearCommunityTask();
 }
