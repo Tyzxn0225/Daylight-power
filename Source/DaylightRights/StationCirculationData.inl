@@ -1,6 +1,23 @@
 #pragma once
 namespace StationCirculation30
 {
+// Existing west promenade between the inspection well and worker housing,
+// and the southern pedestrian link to the trading hall. No new geometry.
+static const FVector DistrictWalkNodes[]={
+ // North crossover stays south of the entry wall and north of the ramp foot.
+ FVector(-2200,7550,0),FVector(-4350,7550,0),FVector(-4000,7550,0),
+ FVector(-4350,8400,0),FVector(-4350,9200,0),FVector(-4350,10200,0),
+ FVector(-4350,11200,0),FVector(-4350,11500,0),FVector(-4350,12400,0),
+ FVector(-4350,13800,0),FVector(-3000,12400,0),FVector(-1800,12400,0),
+ FVector(-600,12400,0),FVector(500,12400,0),FVector(1200,12300,0)
+};
+// Measured from BZ14_AccessibleRamp: 4 m wide, 30 m run and 2.4 m rise.
+static const FVector DistrictRampNodes[]={
+ FVector(-4000,7700,0),FVector(-4000,8000,24),FVector(-4000,8300,48),
+ FVector(-4000,8600,72),FVector(-4000,8900,96),FVector(-4000,9200,120),
+ FVector(-4000,9500,144),FVector(-4000,9800,168),FVector(-4000,10100,192),
+ FVector(-4000,10400,216),FVector(-4000,10700,240)
+};
 // Existing V16 door centres and approaches in world centimetres. Every
 // connection must still pass body, head-clearance and floor checks.
 static const FVector InteriorDoorNodes[]={

@@ -127,6 +127,7 @@ void AStationObject::BeginPlay()
     }
 }
 FVector AStationObject::GetInteractionPoint() const {return GetActorTransform().TransformPosition(!InteractionOffset.IsNearlyZero()?InteractionOffset:FVector(0,20,(Kind==EStationObjectKind::Notice||Kind==EStationObjectKind::AllocationLedger||Kind==EStationObjectKind::WorkAccount||IsServiceRequest())?118:95));}
+FVector AStationObject::GetInteractionStandPoint() const {return GetActorTransform().TransformPositionNoScale(InteractionStandOffset);}
 void AStationObject::SetServicePower(bool Powered)
 {
     if(ServiceLampMaterial)ServiceLampMaterial->SetScalarParameterValue(TEXT("Glow"),Powered?60.f:0.f);

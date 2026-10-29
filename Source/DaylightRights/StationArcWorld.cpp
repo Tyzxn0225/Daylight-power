@@ -83,7 +83,7 @@ void AStationDirector::UpdateArcWorld(float Delta)
     {
      FTransform T(AP(Spec));auto* O=GetWorld()->SpawnActorDeferred<AStationObject>(AStationObject::StaticClass(),T,this,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
      O->Kind=EStationObjectKind::SupplyParcel;O->DisplayName=AS(Spec,TEXT("name"));O->UseExistingGeometry=Existing==TEXT("kitchen_gate");
-     if(O->UseExistingGeometry)O->InteractionOffset=FVector(90,60,110);
+     if(O->UseExistingGeometry){O->InteractionOffset=FVector(90,60,110);O->InteractionStandOffset=FVector(90,0,0);}
      O->FinishSpawning(T);if(O->UseExistingGeometry)BuildArcGateReader(O);Objects.Add(O);ArcObjects.Add(O);Target=O;
     }
    }

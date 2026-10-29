@@ -10,12 +10,25 @@ void AStationDirector::AutomationConflictPickupPreview()
 {
 #if WITH_EDITOR
     if(!FParse::Param(FCommandLine::Get(),TEXT("DaylightAutomation"))||!FParse::Param(FCommandLine::Get(),TEXT("DaylightReadOnlySave")))return;
-    AutomationSurveyPreview(true);
+    // Start from a clean checkpoint so later chapter/film flags cannot leak
+    // in from an unrelated late-game preview. Resources match the fresh route.
+    AutomationReset(false);
+    Progress->MetEngineer=Progress->ReadNotice=Progress->HasConnector=Progress->HeardRisk=true;
+    Progress->Connections=7;Progress->ChosenPlan=0;Progress->Reserve=16;
+    Progress->Started=Progress->CutsceneDone=true;
+    Progress->HeardAllocation=Progress->MetBroker=Progress->ReadLedger=true;
+    Progress->AllocationPolicy=0;Progress->AllocationReviewMask=7;
+    Progress->RequestReadMask=7;Progress->RationBriefed=true;
+    Progress->RationMask=3;Progress->RationBudget=72;Progress->RationCost=56;
+    Progress->RationVisitMask=Progress->RationReviewMask=7;Progress->ReadRecall=true;
+    Progress->SeenWorldFilm=Progress->SeenFamilyFilm=Progress->SeenAftermathFilm=true;
+    Progress->ConflictStarted=true;Progress->KitchenShortcutOpen=true;
     Progress->ConflictTraceMask=7;Progress->ConflictWitness=3;
     Progress->ConflictEvidence=true;Progress->ConflictHeardMask=3;
     Progress->ConflictOffer=true;Progress->ConflictChoice=0;
     Progress->ConflictPartHeld=false;Progress->ConflictDelivered=false;Progress->ConflictComplete=false;
     ApplyProgress();
+    if(PC&&PC->GetPawn())PC->GetPawn()->SetActorLocation(FVector(-3874.916409,2778.078932,111.150003));
 #endif
 }
 

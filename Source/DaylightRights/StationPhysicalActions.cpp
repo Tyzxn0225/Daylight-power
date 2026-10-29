@@ -40,9 +40,9 @@ bool AStationDirector::BeginPhysicalAction(AStationObject* Target,const FString&
     auto* Clip=LoadObject<UAnimationAsset>(nullptr,*FString::Printf(TEXT("/Game/BZ/Characters/LinZhao/Animations/A_LinZhao_%s.A_LinZhao_%s"),*Action,*Action));
     if(!Character||!IsValid(Target)||PendingActionTarget||!Clip)return false;
     if(Character->GetCharacterMovement()->IsFalling()){Notify(TEXT("请先站稳，再操作设备。"),true);return false;}
-    // Each device faces its local +Y. Sweep along the existing floor; never teleport
+    // Use the device's authored working position. Sweep along the existing floor; never teleport
     // through a wall or alter height just to manufacture a contact pose.
-    PendingStandPoint=Target->GetActorLocation()+Target->GetActorRightVector()*72;PendingStandPoint.Z=Character->GetActorLocation().Z;
+    PendingStandPoint=Target->GetInteractionStandPoint();PendingStandPoint.Z=Character->GetActorLocation().Z;
     if(FVector::Dist2D(PendingStandPoint,Character->GetActorLocation())>145)
     {
         Notify(TEXT("请走到设备正面，再开始操作。"),true);return false;
@@ -80,7 +80,7 @@ void AStationDirector::TickPhysicalAction(float Delta)
         return;
     }
     Character->GetCharacterMovement()->StopMovementImmediately();
-    FRotator Facing=(PendingActionTarget->GetActorLocation()-Character->GetActorLocation()).Rotation();Facing.Pitch=0;Facing.Roll=0;
+    FRotator Facing=(PendingActionTarget->GetInteractionPoint()-Character->GetActorLocation()).Rotation();Facing.Pitch=0;Facing.Roll=0;
     Character->SetActorRotation(FMath::RInterpTo(Character->GetActorRotation(),Facing,Delta,12));
     if(PendingFinishTime<=0)
     {

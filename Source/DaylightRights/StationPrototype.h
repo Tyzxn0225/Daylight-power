@@ -142,8 +142,10 @@ public:
     UPROPERTY(EditAnywhere,BlueprintReadWrite,Category="Station") bool UseExistingGeometry=false;
     UPROPERTY() bool Indoor=false;
     UPROPERTY() FVector InteractionOffset=FVector::ZeroVector;
+    UPROPERTY() FVector InteractionStandOffset=FVector(0,72,0);
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Station") bool Active=true;
     UFUNCTION(BlueprintPure) FVector GetInteractionPoint() const;
+    UFUNCTION(BlueprintPure) FVector GetInteractionStandPoint() const;
     void SetIndicator(const FLinearColor& Color,float Emission);
     void SetServicePower(bool Powered);
     bool IsServiceRequest() const { return Kind>=EStationObjectKind::ClinicRequest&&Kind<=EStationObjectKind::HousingRequest; }

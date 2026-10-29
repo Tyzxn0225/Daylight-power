@@ -87,12 +87,23 @@ TArray<FStationMapPin> AStationDirector::GetNavigationPins() const
 bool AStationDirector::RequiresFrontalApproach(AStationObject* Object) const
 {
  if(!IsValid(Object))return false;
+ if(IsArcChapter())
+ {
+  const auto Node=ArcCurrent();FString Kind,TargetKey;
+  if(Node&&Node->TryGetStringField(TEXT("kind"),Kind)&&Node->TryGetStringField(TEXT("target"),TargetKey)&&ResolveArcTarget(TargetKey)==Object)return Kind==TEXT("operate");
+  if(ArcObjects.Contains(Object))return false;
+ }
  if(Object->IsServiceRequest())return false;
  switch(Object->Kind)
  {
-  case EStationObjectKind::Notice:case EStationObjectKind::AllocationLedger:case EStationObjectKind::WorkAccount:
+  case EStationObjectKind::WorkAccount:
+   return IsMandateChapter()&&Progress->MandateStarted&&!Progress->MandateEndingHeard&&Progress->MandateOwnerHeard&&!Progress->MandateOriginalHeld&&!Progress->MandateCompared;
+  case EStationObjectKind::HeatControl:return CrisisObjects.IsValidIndex(0)&&Object==CrisisObjects[0];
+  case EStationObjectKind::Notice:case EStationObjectKind::AllocationLedger:
   case EStationObjectKind::FieldRadio:case EStationObjectKind::UrbanRecord:case EStationObjectKind::Reflect:
-  case EStationObjectKind::HeatControl:case EStationObjectKind::SurveyCabinet:return false;
+  case EStationObjectKind::SurveyCabinet:return false;
+  case EStationObjectKind::DistrictRecord:
+   return (DistrictObjects.IsValidIndex(1)&&Object==DistrictObjects[1])||(DistrictObjects.IsValidIndex(4)&&Object==DistrictObjects[4]);
   case EStationObjectKind::NeighborhoodMemory:
    return ExplorationObjects.IsValidIndex(5)&&Object==ExplorationObjects[5]&&IsConflictChapter()&&Progress->ConflictStarted&&Progress->ConflictChoice<0&&!Progress->KitchenShortcutOpen;
   default:return true;
@@ -168,7 +179,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  {NavigationProbes.Empty();NavigationProbeEpoch=Now;NavigationShortcutOpen=ShortcutOpen;}
  NavigationUpdated=Now;NavigationTarget=Guide;NavigationGoal=Target;NavigationStart=Here;NavigationRoute.Empty();NavigationVerified=false;NavigationFailure.Empty();NavigationQueries=0;
  FVector Goal=Target;
- if(auto* Object=Cast<AStationObject>(Guide))Goal+=Object->GetActorRightVector()*72.f;
+ if(auto* Object=Cast<AStationObject>(Guide))Goal=Object->GetInteractionStandPoint();
  const bool PersonGoal=Cast<AStationEngineer>(Guide)!=nullptr;
  auto* ObjectGoal=Cast<AStationObject>(Guide);
  // Readable boards allow either visible side. Hands-on devices retain their
@@ -258,6 +269,8 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  // follow the exported geometry; a route is still accepted only after sweeps.
  for(const FVector& P:StationCirculation30::TerraceNodes)AddFloorNode(P);
  for(const FVector& P:StationCirculation30::InteriorDoorNodes)AddFloorNode(P);
+ for(const FVector& P:StationCirculation30::DistrictWalkNodes)AddFloorNode(P);
+ for(const FVector& P:StationCirculation30::DistrictRampNodes)AddFloorNode(P);
  // Reader stands and people remain physical obstacles. Local approach nodes
  // allow a short route around their body instead of drawing through it.
  const int32 ApproachStart=Positions.Num();
