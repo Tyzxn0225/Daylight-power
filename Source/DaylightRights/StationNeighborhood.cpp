@@ -3,6 +3,7 @@
 #include "StationExplorationPolicy.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/World.h"
 #include "Engine/RectLight.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/RectLightComponent.h"
@@ -54,7 +55,40 @@ void AStationDirector::CreateNeighborhood()
         auto* Lamp=GetWorld()->SpawnActor<ARectLight>(F.Position,FRotator(-90,0,0));auto* Component=CastChecked<URectLightComponent>(Lamp->GetLightComponent());Component->SetMobility(EComponentMobility::Movable);
         Component->SetIntensityUnits(ELightUnits::Lumens);Component->SetIntensity(F.Lumens);Component->SetLightColor(F.Color);Component->SetSourceWidth(F.Width);Component->SetSourceHeight(F.Height);Component->SetAttenuationRadius(Key.Contains(TEXT("Family"))?210.f:650.f);
     }
-    if(KitchenGate&&Progress->KitchenShortcutOpen){KitchenGateAlpha=1;KitchenGate->SetActorRotation(FRotator(0,-100,0));}
+    if(KitchenGate&&Progress->KitchenShortcutOpen)MoveKitchenGate(1,0);
+}
+void AStationDirector::MoveKitchenGate(float DesiredAlpha,float Delta)
+{
+    if(!IsValid(KitchenGate))return;
+    const float Next=Delta>0?FMath::FInterpConstantTo(KitchenGateAlpha,DesiredAlpha,Delta,.85f):DesiredAlpha;
+    if(FMath::IsNearlyEqual(Next,KitchenGateAlpha))return;
+    TArray<AActor*> Leaves;KitchenGate->GetAttachedActors(Leaves,true,true);
+    const FTransform CurrentPivot=KitchenGate->GetActorTransform();
+    FCollisionQueryParams Query(SCENE_QUERY_STAT(KitchenGateSafety),false,this);
+    // Rotation cannot use the character's translational movement sweep. Check
+    // the physical leaf along its arc and wait until people leave that arc.
+    const int32 Steps=FMath::Max(1,FMath::CeilToInt(FMath::Abs(Next-KitchenGateAlpha)*100.f/2.f));
+    for(int32 I=1;I<=Steps;++I)
+    {
+        const float Alpha=FMath::Lerp(KitchenGateAlpha,Next,float(I)/Steps);
+        // Open inward so the leaf does not sweep through the delivery queue.
+        const FTransform Pivot(FRotator(0,100*FMath::InterpEaseInOut(0.f,1.f,Alpha,2.f),0),CurrentPivot.GetLocation());
+        for(AActor* Leaf:Leaves)
+        {
+            TArray<UStaticMeshComponent*> Parts;Leaf->GetComponents(Parts);
+            for(UStaticMeshComponent* Part:Parts)
+            {
+                if(Part->GetCollisionEnabled()==ECollisionEnabled::NoCollision)continue;
+                FVector Min,Max;Part->GetLocalBounds(Min,Max);
+                const FTransform Pose=Part->GetComponentTransform().GetRelativeTransform(CurrentPivot)*Pivot;
+                const FVector Center=Pose.TransformPosition((Min+Max)*.5f);
+                const FVector Extent=(Max-Min)*.5f*Pose.GetScale3D().GetAbs()+FVector(3);
+                if(GetWorld()->OverlapAnyTestByObjectType(Center,Pose.GetRotation(),FCollisionObjectQueryParams(ECC_Pawn),FCollisionShape::MakeBox(Extent),Query))return;
+            }
+        }
+    }
+    KitchenGateAlpha=Next;
+    KitchenGate->SetActorRotation(FRotator(0,100*FMath::InterpEaseInOut(0.f,1.f,Next,2.f),0));
 }
 void AStationDirector::CreateExplorationObjects()
 {
@@ -80,7 +114,7 @@ void AStationDirector::TickNeighborhood(float Delta)
     if(FieldRadio){FieldRadio->Active=IsCrisisChapter()||IsArcChapter()||(!Progress->Started&&Progress->Connections==7&&!Progress->HeardRisk);}
     if(KitchenGate&&!IsArcChapter()&&Progress->KitchenShortcutOpen&&KitchenGateAlpha<1)
     {
-        KitchenGateAlpha=FMath::Min(1.f,KitchenGateAlpha+Delta/1.2f);const float A=FMath::InterpEaseInOut(0.f,1.f,KitchenGateAlpha,2.f);KitchenGate->SetActorRotation(FRotator(0,-100*A,0));
+        MoveKitchenGate(1,Delta);
     }
     for(auto* Person:{Engineer.Get(),LinHe.Get(),ZhouChi.Get()})if(Person)Person->NeighborhoodRoutes=true;
     if(!Progress->Started&&Progress->HasConnector&&Engineer&&!Engineer->ConversationPaused&&!WorkYieldPeople.Contains(Engineer))

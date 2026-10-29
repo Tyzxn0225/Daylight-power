@@ -200,7 +200,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  bool CacheableProbe=true;
  auto TransientHit=[&](const FHitResult& Hit)
  {
-  return Cast<ACharacter>(Hit.GetActor())||Cast<AStationObject>(Hit.GetActor())||(IsValid(D->KitchenGate)&&Hit.GetActor()==D->KitchenGate)||
+  return Cast<ACharacter>(Hit.GetActor())||Cast<AStationObject>(Hit.GetActor())||(IsValid(D->KitchenGate)&&Hit.GetActor()&&(Hit.GetActor()==D->KitchenGate||Hit.GetActor()->IsAttachedTo(D->KitchenGate)))||
    (Hit.GetComponent()&&Hit.GetComponent()->IsSimulatingPhysics());
  };
  auto BodyClear=[&](FVector A,FVector B)

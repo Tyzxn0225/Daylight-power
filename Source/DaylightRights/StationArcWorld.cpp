@@ -121,8 +121,7 @@ void AStationDirector::UpdateArcWorld(float Delta)
   if(GetArcFact(TEXT("gate_blocked"))&&!GetArcFact(TEXT("gate_resolved")))Open=false;
   if(Panel==EStationPanel::ArcScene&&AS(ArcCurrent(),TEXT("id"))==TEXT("blockade")&&ArcSceneLine>=3)Open=false;
   if(GetArcFact(TEXT("priority_live")))Open=PC&&PC->GetPawn()&&FVector::Dist2D(PC->GetPawn()->GetActorLocation(),KitchenGate->GetActorLocation())<260;
-  const float Wanted=Open?1.f:0.f;KitchenGateAlpha=Delta>0?FMath::FInterpConstantTo(KitchenGateAlpha,Wanted,Delta,.85f):Wanted;
-  KitchenGate->SetActorRotation(FRotator(0,-100*FMath::InterpEaseInOut(0.f,1.f,KitchenGateAlpha,2.f),0));
+  MoveKitchenGate(Open?1.f:0.f,Delta);
  }
  const bool Committed=GetArcFact(TEXT("world_committed"))!=0;
  if(ArcLights.Num()==3)

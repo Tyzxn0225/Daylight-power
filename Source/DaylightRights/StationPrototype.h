@@ -549,6 +549,7 @@ private:
     UPROPERTY() TObjectPtr<AStationObject> FieldRadio;
     UPROPERTY() TObjectPtr<AStationObject> FieldDesk;
     UPROPERTY() TObjectPtr<AActor> KitchenGate;
+    void MoveKitchenGate(float DesiredAlpha,float Delta);
     UPROPERTY() TArray<TObjectPtr<AStationObject>> ConflictTraces;
     int32 ActiveConflictTrace=-1;
     bool CompleteConflictTraceDocument(AStationObject* Object);
