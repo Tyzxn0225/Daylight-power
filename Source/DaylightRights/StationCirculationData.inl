@@ -8,8 +8,12 @@ static const FVector DistrictWalkNodes[]={
  FVector(-2200,7550,0),FVector(-4350,7550,0),FVector(-4000,7550,0),
  FVector(-4350,8400,0),FVector(-4350,9200,0),FVector(-4350,10200,0),
  FVector(-4350,11200,0),FVector(-4350,11500,0),FVector(-4350,12400,0),
- FVector(-4350,13800,0),FVector(-3000,12400,0),FVector(-1800,12400,0),
- FVector(-600,12400,0),FVector(500,12400,0),FVector(1200,12300,0)
+ // The basin extends to Y=12700: cross south of it, never through its floor.
+ FVector(-4350,12950,0),FVector(-4350,13800,0),FVector(-3000,12950,0),
+ FVector(-1800,12950,0),FVector(-600,12950,0),FVector(-100,12950,0),
+ FVector(-100,12300,0),FVector(900,12300,0),FVector(2200,12300,0),
+ // Existing clear factory opening, with the raised 200 mm hall slab.
+ FVector(2200,12550,20),FVector(2200,12700,20)
 };
 // Measured from BZ14_AccessibleRamp: 4 m wide, 30 m run and 2.4 m rise.
 static const FVector DistrictRampNodes[]={
