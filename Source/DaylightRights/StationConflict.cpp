@@ -3,6 +3,21 @@
 #include "Engine/StaticMesh.h"
 #include "GameFramework/PlayerController.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
+
+void AStationDirector::AutomationConflictPickupPreview()
+{
+#if WITH_EDITOR
+    if(!FParse::Param(FCommandLine::Get(),TEXT("DaylightAutomation"))||!FParse::Param(FCommandLine::Get(),TEXT("DaylightReadOnlySave")))return;
+    AutomationSurveyPreview(true);
+    Progress->ConflictTraceMask=7;Progress->ConflictWitness=3;
+    Progress->ConflictEvidence=true;Progress->ConflictHeardMask=3;
+    Progress->ConflictOffer=true;Progress->ConflictChoice=0;
+    Progress->ConflictPartHeld=false;Progress->ConflictDelivered=false;Progress->ConflictComplete=false;
+    ApplyProgress();
+#endif
+}
 
 void AStationDirector::UpdateConflictActors()
 {

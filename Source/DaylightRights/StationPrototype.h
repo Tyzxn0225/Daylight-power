@@ -263,6 +263,7 @@ public:
     int32 GetSupplyStage() const;
     FString GetSupplyMenuChoice(int32 Index) const;
     bool IsConflictChapter() const { return Progress&&Progress->ConflictStarted; }
+    UFUNCTION(BlueprintCallable,meta=(DevelopmentOnly)) void AutomationConflictPickupPreview();
     int32 GetConflictStage() const;
     FString GetConflictMenuChoice(int32 Index) const;
     UFUNCTION(BlueprintCallable,Category="Station",meta=(DevelopmentOnly)) bool AutomationStoryFilm(const FString& Film);
