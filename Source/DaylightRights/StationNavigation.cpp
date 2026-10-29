@@ -189,7 +189,11 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
  auto* Character=Cast<ACharacter>(Pawn);const float Half=Character?Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight():88.f;
  const float Radius=Character?FMath::Max(30.f,Character->GetCapsuleComponent()->GetScaledCapsuleRadius()):34.f;
  const float StepHeight=Character?Character->GetCharacterMovement()->MaxStepHeight:45.f;
- const auto Shape=FCollisionShape::MakeCapsule(Radius,FMath::Max(Radius,Half-18.f));
+ // CharacterMovement steps over low kerbs before settling its capsule. Sweep
+ // the upper body above that same step allowance, then verify the actual floor
+ // and each height change below it. A fixed 180 mm trim rejected legal steps.
+ const float BodyLift=FMath::Clamp(StepHeight*.5f,0.f,Half-Radius);
+ const auto Shape=FCollisionShape::MakeCapsule(Radius,FMath::Max(Radius,Half-BodyLift));
  FCollisionQueryParams Q(SCENE_QUERY_STAT(StoryNavigation),false,Pawn);Q.AddIgnoredActor(Guide);Q.AddIgnoredActor(D);
  FCollisionQueryParams MovementQ(SCENE_QUERY_STAT(StoryNavigationBody),false,Pawn);MovementQ.AddIgnoredActor(D);
  const bool TraceDebug=FParse::Param(FCommandLine::Get(),TEXT("DaylightNavigationDebug"));
@@ -209,7 +213,7 @@ void AStationHUD::RefreshNavigation(AStationDirector* D,AActor* TargetOverride)
   FHitResult Hit;
   // The shorter lower sweep permits normal step-up. Restore the real capsule's
   // head clearance separately so a low lintel cannot produce a false route.
-  if(GetWorld()->SweepSingleByChannel(Hit,A+FVector(0,0,5),B+FVector(0,0,5),FQuat::Identity,ECC_Pawn,Shape,MovementQ)){CacheableProbe=!TransientHit(Hit);LogBlock(TEXT("body"),A,B,Hit);return false;}
+  if(GetWorld()->SweepSingleByChannel(Hit,A+FVector(0,0,BodyLift),B+FVector(0,0,BodyLift),FQuat::Identity,ECC_Pawn,Shape,MovementQ)){CacheableProbe=!TransientHit(Hit);LogBlock(TEXT("body"),A,B,Hit);return false;}
   const FVector Head(0,0,Half-Radius+5);
   if(GetWorld()->SweepSingleByChannel(Hit,A+Head,B+Head,FQuat::Identity,ECC_Pawn,FCollisionShape::MakeSphere(Radius),MovementQ)){CacheableProbe=!TransientHit(Hit);LogBlock(TEXT("head"),A,B,Hit);return false;}
   return true;
